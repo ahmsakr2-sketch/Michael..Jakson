@@ -1,0 +1,3070 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#05020a">
+<title>مايكل جاكسون في عالم علاء الدين — النسخة السينمائية للويندوز والأندرويد</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; margin: 0; padding: 0; }
+  body, html {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #05020a; font-family: 'Segoe UI', Tahoma, sans-serif; color: #fff;
+    touch-action: none;
+  }
+  #renderCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; }
+
+  .top-edge-hud {
+    position: absolute; top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none; z-index: 25; gap: 8px; flex-wrap: wrap;
+  }
+
+  .snes-status-bar {
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, rgba(16, 10, 34, 0.94), rgba(6, 4, 16, 0.97));
+    border: 2px solid #ffd700; border-radius: 14px;
+    padding: 5px 13px; box-shadow: 0 6px 25px rgba(0,0,0,0.9);
+  }
+  .hearts-row { display: flex; align-items: center; gap: 2px; font-size: 15px; filter: drop-shadow(0 0 5px #ff1744); }
+  .snes-stat { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 13.5px; color: #fff; }
+  .snes-stat .num { font-family: 'Courier New', monospace; font-size: 17px; color: #ffd700; }
+  .hp-subbar { width: 55px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; }
+  .hp-subfill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff1744, #00e676); transition: width 0.15s; }
+
+  .hud-strip {
+    pointer-events: auto;
+    background: rgba(12, 8, 28, 0.94);
+    border: 1px solid rgba(255, 215, 0, 0.65);
+    border-radius: 12px; padding: 5px 9px;
+    display: flex; align-items: center; gap: 5px;
+    backdrop-filter: blur(12px); font-size: 10.5px;
+    box-shadow: 0 6px 22px rgba(0,0,0,0.85); flex-wrap: wrap;
+  }
+
+  select.edge-select, .edge-btn {
+    background: rgba(26, 16, 48, 0.95); color: #ffd700;
+    border: 1px solid rgba(255, 215, 0, 0.55); border-radius: 7px;
+    padding: 4px 8px; font-size: 10.5px; font-weight: 800;
+    cursor: pointer; font-family: inherit; outline: none; transition: 0.15s;
+  }
+  select.edge-select:hover, .edge-btn:hover { border-color: #00f0ff; color: #fff; }
+  .edge-btn.active-toggle { background: #ffd700; color: #000; border-color: #fff; }
+  .edge-btn.muted-toggle { background: #4a1525; color: #ff8899; border-color: #ff2a55; }
+  .edge-btn.pause-btn { background: linear-gradient(135deg, #ff2a55, #ff7700); color: #fff; border-color: #fff; }
+  .edge-btn.playlist-btn { background: linear-gradient(135deg, #00e5ff, #2979ff); color: #000; border-color: #fff; }
+
+  #nowPlayingTicker {
+    color: #00ffff; font-weight: 900; font-size: 10.5px; max-width: 150px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  #storyChapterBanner {
+    position: absolute; top: 68px; left: 50%; transform: translateX(-50%);
+    z-index: 28; pointer-events: none;
+    background: linear-gradient(135deg, rgba(18, 8, 38, 0.94), rgba(6, 3, 16, 0.96));
+    border: 2px solid #ffd700; border-radius: 16px;
+    padding: 9px 26px; text-align: center;
+    box-shadow: 0 0 35px rgba(255, 215, 0, 0.55);
+    transition: opacity 0.5s ease;
+  }
+  #storyChapterTitle { font-size: 18px; font-weight: 900; color: #ffd700; margin-bottom: 2px; }
+  #storyChapterSub { font-size: 11.5px; color: #00e5ff; font-weight: 700; }
+
+  #waterWarningBanner {
+    display: none; position: absolute; top: 132px; left: 50%; transform: translateX(-50%);
+    z-index: 29; pointer-events: none;
+    background: rgba(217, 4, 41, 0.92); border: 2px solid #fff;
+    padding: 5px 18px; border-radius: 20px; font-size: 13px; font-weight: 900;
+    box-shadow: 0 0 20px #ff0044;
+  }
+
+  #bossCorner {
+    display: none; position: absolute; top: 64px; right: 16px;
+    background: rgba(32, 4, 14, 0.95); border: 2px solid #ff2a55;
+    border-radius: 12px; padding: 7px 14px; width: 270px; z-index: 22;
+    pointer-events: none; font-size: 12px;
+  }
+  .b-track { width: 100%; height: 8px; background: #26040c; border-radius: 4px; margin-top: 4px; overflow: hidden; }
+  #bossFill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0044, #ffd700); transition: width 0.15s; }
+
+  #mjCelebrationBanner {
+    display: none; position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%);
+    z-index: 40; pointer-events: auto;
+    background: linear-gradient(135deg, rgba(20, 10, 46, 0.96), rgba(8, 4, 22, 0.98));
+    border: 2px solid #ffd700; border-radius: 20px; padding: 16px 32px;
+    text-align: center; box-shadow: 0 0 50px rgba(255, 215, 0, 0.75);
+    min-width: 340px; max-width: 92vw;
+  }
+  #danceStepBadge {
+    display: inline-block; background: rgba(0, 229, 255, 0.2); border: 1px solid #00e5ff;
+    color: #00ffff; font-weight: 900; font-size: 13.5px; padding: 4px 14px;
+    border-radius: 14px; margin: 6px 0 12px;
+  }
+
+  #pauseOverlay, #playlistModal {
+    display: none; position: absolute; inset: 0; z-index: 45;
+    background: rgba(6, 4, 20, 0.88); backdrop-filter: blur(8px);
+    flex-direction: column; justify-content: center; align-items: center; gap: 16px;
+  }
+  .modal-card {
+    background: linear-gradient(135deg, rgba(24, 14, 52, 0.98), rgba(10, 6, 26, 0.99));
+    border: 2px solid #ffd700; border-radius: 22px; padding: 22px 28px;
+    text-align: center; box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+    max-width: 620px; width: 94%;
+  }
+  .big-action-btn {
+    background: linear-gradient(135deg, #ffd700, #ff9900); color: #000;
+    border: 2px solid #fff; padding: 9px 24px; font-size: 14px; font-weight: 900;
+    border-radius: 30px; cursor: pointer; font-family: inherit; margin: 4px;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6); transition: transform 0.15s;
+  }
+  .big-action-btn:hover { transform: scale(1.05); }
+
+  .playlist-list {
+    max-height: 195px; overflow-y: auto; text-align: right;
+    background: rgba(5, 4, 15, 0.78); border: 1px solid rgba(255,215,0,0.4);
+    border-radius: 12px; padding: 8px 12px; margin: 8px 0;
+  }
+  .playlist-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px; cursor: pointer; gap: 6px;
+  }
+  .playlist-item:hover { background: rgba(255, 215, 0, 0.12); border-radius: 6px; }
+  .playlist-item input[type="checkbox"] { transform: scale(1.25); accent-color: #ffd700; margin-left: 8px; cursor: pointer; }
+  .url-input-row { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+  .url-input {
+    flex: 1; min-width: 180px; background: rgba(10, 8, 26, 0.95); border: 1px solid #00e5ff;
+    color: #fff; padding: 7px 10px; border-radius: 8px; font-size: 12px; outline: none;
+  }
+
+  /* مشغل مصغر عائم لروابط YouTube / SoundCloud الأونلاين */
+  #onlineEmbedWidget {
+    display: none; position: absolute; bottom: 38px; right: 12px; z-index: 32;
+    width: 240px; height: 85px; background: rgba(10, 6, 24, 0.95);
+    border: 2px solid #00e5ff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.85); pointer-events: auto;
+  }
+  #onlineEmbedFrame { width: 100%; height: 100%; border: none; }
+
+  /* أزرار التحكم باللمس للأندرويد والموبايل (Virtual Touch Gamepad) */
+  #touchControlsOverlay {
+    display: none; position: absolute; inset: 0; pointer-events: none; z-index: 26;
+  }
+  .touch-dpad {
+    position: absolute; bottom: 36px; left: 18px; width: 156px; height: 156px;
+    pointer-events: auto;
+  }
+  .t-btn {
+    position: absolute; background: rgba(20, 14, 42, 0.72);
+    border: 2px solid rgba(255, 215, 0, 0.75); color: #ffd700;
+    border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-weight: 900; font-size: 18px; box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px); cursor: pointer; user-select: none;
+  }
+  .t-btn:active, .t-btn.pressed { background: rgba(255, 215, 0, 0.85); color: #000; transform: scale(0.94); }
+  .t-up    { width: 50px; height: 50px; top: 0; left: 53px; }
+  .t-down  { width: 50px; height: 50px; bottom: 0; left: 53px; }
+  .t-left  { width: 50px; height: 50px; top: 53px; left: 0; }
+  .t-right { width: 50px; height: 50px; top: 53px; right: 0; }
+
+  .touch-actions {
+    position: absolute; bottom: 36px; right: 18px; width: 190px; height: 160px;
+    pointer-events: auto;
+  }
+  .act-jump { width: 64px; height: 64px; bottom: 0; right: 0; background: rgba(0, 229, 255, 0.3); border-color: #00ffff; font-size: 13px; }
+  .act-sword { width: 56px; height: 56px; bottom: 12px; right: 74px; background: rgba(255, 42, 85, 0.35); border-color: #ff2a55; font-size: 13px; }
+  .act-apple { width: 54px; height: 54px; top: 18px; right: 12px; background: rgba(255, 153, 0, 0.35); border-color: #ffaa00; font-size: 13px; }
+  .act-mw { width: 48px; height: 48px; top: 24px; right: 78px; font-size: 11px; }
+  .act-lean { width: 48px; height: 48px; bottom: 68px; left: 0; font-size: 11px; }
+
+  .bottom-hint {
+    position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    background: rgba(5, 6, 16, 0.92); border: 1px solid rgba(255,215,0,0.55);
+    padding: 4px 16px; border-radius: 16px; font-size: 11px; color: #eee;
+    pointer-events: none; white-space: nowrap; z-index: 25;
+  }
+  .k { color: #ffd700; font-weight: 900; margin: 0 2px; }
+
+  #popupLayer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 30; }
+  .pop-txt {
+    position: absolute; transform: translate(-50%, -50%);
+    font-weight: 900; font-size: 14px; text-shadow: 0 2px 8px #000;
+    animation: riseUp 0.95s ease-out forwards; white-space: nowrap;
+  }
+  @keyframes riseUp {
+    0% { opacity: 1; transform: translate(-50%, 0) scale(0.85); }
+    100% { opacity: 0; transform: translate(-50%, -54px) scale(1.1); }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="renderCanvas"></canvas>
+<div id="popupLayer"></div>
+
+<div id="storyChapterBanner">
+  <div id="storyChapterTitle">المرحلة 1: سوق عقربة التجاري</div>
+  <div id="storyChapterSub">اقفز فوق مظلات الأكشاك، احذر من الثعابين المندفعة والحراس، وتفادَ السقوط في الحفر!</div>
+</div>
+
+<div id="waterWarningBanner">⚠️ أنت في المياه العميقة! اقفز سريعاً للمنصات قبل نفاد صحتك!</div>
+
+<div class="top-edge-hud">
+  <div class="snes-status-bar">
+    <button class="edge-btn pause-btn" id="pauseBtn" onclick="togglePauseGame()">⏸️</button>
+    <div class="snes-stat" title="المحاولات المتبقية">🪲 <span class="num" id="uiLives">04</span></div>
+    <div class="hearts-row" id="uiHeartsRow">❤️❤️❤️❤️❤️</div>
+    <div class="hp-subbar" title="عداد الصحة الدقيق"><div class="hp-subfill" id="uiSubHp"></div></div>
+    <div class="snes-stat" title="التفاح (زر X)">🍎 <span class="num" id="uiApples">15</span></div>
+    <div class="snes-stat" title="الجواهر">💎 <span class="num" id="uiGems">00</span></div>
+    <div class="snes-stat" title="النقاط">📜 <span class="num" id="uiScore">001000</span></div>
+  </div>
+
+  <div class="hud-strip">
+    <select class="edge-select" id="stageSelect" onchange="buildStage(parseInt(this.value)); this.blur();">
+      <option value="0">1. سوق عقربة التجاري (الأكشاك، المظلات، البراميل، والحفر)</option>
+      <option value="1">2. كثبان الصحراء والرمال المتحركة (الجمال، الثعابين المندفعة، والنخيل)</option>
+      <option value="2">3. أسطح عقربة وقت الغروب (حبال الغسيل، المقاتلات الإناث، والزعيم فركوت)</option>
+      <option value="3">4. زنازين السلطان المظلمة (حفر الأشواك، السلاسل، والمنصات المتأرجحة)</option>
+      <option value="4">5. مدخل كهف العجائب (رأس النمر، الأحجار المنقلبة، والهوة السحيقة)</option>
+      <option value="5">6. البحيرة الجوفية والشلالات (جذوع الأشجار العائمة ومياه تستنزف الصحة!)</option>
+      <option value="6">7. قاعة كنوز الذهب والمصباح (تلال الذهب، المقاتلات، وحارس الكنز)</option>
+      <option value="7">8. ثوران البركان ونوافير الحمم (الجسور الصخرية، نوافير النار، وبحر اللافا)</option>
+      <option value="8">9. سباق الهروب بالبساط السحري (مطاردة مستمرة من اللافا + خفافيش النار!)</option>
+      <option value="9">10. داخل المصباح السحري (أيدي الجني الزرقاء، البالونات، والهاوية السحرية)</option>
+      <option value="10">11. ألسنة الجني الوردية والزنبركات (تسلق عمودي ومكعبات الجني الغمازة)</option>
+      <option value="11">12. أهرامات الفراعنة وشلالات الرمال (الهرم المدرج، الكوبرا، والزعيم الفرعوني)</option>
+      <option value="12">13. حدائق قصر السلطان (شرفات المرمر، طيور الفلامنغو، وحراس القصر)</option>
+      <option value="13">14. سماء عقربة الليلية (طيران بالبساط السحري وسط النجوم واللصوص الطائرين)</option>
+      <option value="14">15. قلعة جعفر والمعركة النهائية (السيوف المغروسة وجعفر الأفعى الكوبرا!)</option>
+    </select>
+
+    <button class="edge-btn playlist-btn" onclick="openPlaylistModal(); this.blur();">📻 قائمة الأغاني (Playlist)</button>
+    <button class="edge-btn" onclick="studioAudio.playNextInQueue(); this.blur();" title="الأغنية التالية">⏭️ التالي</button>
+    <span id="nowPlayingTicker">🎵 Billie Jean</span>
+
+    <button class="edge-btn active-toggle" id="bgmToggleBtn" onclick="studioAudio.toggleBGM(); this.blur();">🎵 الموسيقى</button>
+    <button class="edge-btn active-toggle" id="sfxToggleBtn" onclick="studioAudio.toggleSFX(); this.blur();">🔊 المؤثرات</button>
+    <button class="edge-btn" id="touchToggleBtn" onclick="toggleTouchPad(); this.blur();">📱 أزرار اللمس</button>
+
+    <select class="edge-select" id="petSelect" onchange="setCompanionMode(this.value); this.blur();">
+      <option value="BOTH">🧞🐒 العفريت + القرد آبو معاً</option>
+      <option value="GENIE">🧞 العفريت الأزرق فقط</option>
+      <option value="ABU">🐒 القرد آبو فقط</option>
+      <option value="NONE">🚫 إخفاء المرافقين</option>
+    </select>
+
+    <select class="edge-select" id="outfitSelect" onchange="equipMJOutfit(parseInt(this.value)); this.blur();">
+      <option value="0">1. القميص الأحمر والقبعة السوداء</option>
+      <option value="1">2. بدلة Smooth Criminal البيضاء</option>
+      <option value="2">3. الزي الملكي الذهبي (عقربة)</option>
+      <option value="3">4. جاكيت Thriller الأحمر</option>
+      <option value="4">5. الدرع الذهبي HIStory</option>
+    </select>
+  </div>
+</div>
+
+<!-- مشغل يوتيوب وساوند كلاود الخلفي للروابط الأونلاين -->
+<div id="onlineEmbedWidget">
+  <iframe id="onlineEmbedFrame" allow="autoplay; encrypted-media"></iframe>
+</div>
+
+<!-- أزرار التحكم باللمس للأندرويد والشاشات اللمسية -->
+<div id="touchControlsOverlay">
+  <div class="touch-dpad">
+    <div class="t-btn t-up" data-key="ArrowUp">▲</div>
+    <div class="t-btn t-down" data-key="ArrowDown">▼</div>
+    <div class="t-btn t-left" data-key="ArrowLeft">◀</div>
+    <div class="t-btn t-right" data-key="ArrowRight">▶</div>
+  </div>
+  <div class="touch-actions">
+    <div class="t-btn act-jump" data-key="Space">قفز 🪂</div>
+    <div class="t-btn act-sword" data-key="KeyZ">سيف ⚔️</div>
+    <div class="t-btn act-apple" data-key="KeyX">تفاح 🍎</div>
+    <div class="t-btn act-mw" data-key="KeyC">Moon</div>
+    <div class="t-btn act-lean" data-key="KeyB">45°</div>
+  </div>
+</div>
+
+<!-- نافذة مدير قوائم التشغيل المتتابعة والروابط الأونلاين (MP3 / M3U / YouTube / Streams) -->
+<div id="playlistModal">
+  <div class="modal-card">
+    <div style="font-size:21px; font-weight:900; color:#ffd700; margin-bottom:4px;">📻 مدير قائمة الأغاني المتتابعة والأونلاين (Online Playlist)</div>
+    <div style="font-size:11.5px; color:#ccc;">حدد أكثر من أغنية (☑️) لتعمل تباعاً، أو أضف رابط MP3 مباشر، أو رابط قائمة <b>.m3u / .pls</b>، أو رابط <b>YouTube / Playlist</b>، أو ارفع ملفات صوتية من جهازك</div>
+
+    <div class="playlist-list" id="playlistContainer"></div>
+
+    <div class="url-input-row">
+      <input type="text" id="onlineTrackTitle" class="url-input" style="max-width:145px;" placeholder="اسم الأغنية/القائمة">
+      <input type="url" id="onlineTrackUrl" class="url-input" placeholder="ألصق رابط MP3، أو قائمة .m3u، أو رابط YouTube (https://...)">
+      <button class="edge-btn active-toggle" onclick="addOnlineUrlToPlaylist()">➕ إضافة وتشغيل</button>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px;">
+      <div style="display:flex; gap:5px; flex-wrap:wrap;">
+        <button class="edge-btn" onclick="selectAllPlaylist(true)">☑️ تحديد الكل</button>
+        <button class="edge-btn" onclick="addSampleOnlineRadio()">🌐 إضافة محطاتMJ أونلاين</button>
+        <label class="edge-btn active-toggle" title="رفع ملفات MP3 أو قوائم .m3u من جهازك">
+          📂 رفع ملفات MP3 / M3U <input type="file" id="multiMp3Upload" accept="audio/*,.m3u,.m3u8,.pls" multiple style="display:none;">
+        </label>
+      </div>
+      <div>
+        <button class="big-action-btn" style="padding:7px 22px;" onclick="closePlaylistModal()">✅ إغلاق ومواصلة اللعب</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="bossCorner">
+  <div style="display:flex; justify-content:space-between; font-weight:900; color:#ffd700;">
+    <span id="bossTitleTxt">زعيم المرحلة</span>
+    <span id="bossPctTxt">100%</span>
+  </div>
+  <div class="b-track"><div id="bossFill"></div></div>
+</div>
+
+<div id="mjCelebrationBanner">
+  <div style="font-size:21px; font-weight:900; color:#ffd700;" id="celebrationStageTitle">🕺 اكتملت المرحلة بنجاح!</div>
+  <div id="danceStepBadge">🎵 يؤدّي الآن: رقصة Thriller الشهيرة!</div>
+  <div style="font-size:12.5px; color:#ddd; margin-bottom:12px;">شاهد استعراض مايكل جاكسون الكامل (Thriller ⬅️ Billie Jean ⬅️ انحناءة 45° ⬅️ سحبة الـ Moonwalk الشهيرة)</div>
+  <button class="big-action-btn" onclick="goToNextStage()">🎬 الانتقال إلى المرحلة التالية ◄</button>
+</div>
+
+<div id="pauseOverlay">
+  <div class="modal-card">
+    <div style="font-size:25px; font-weight:900; color:#ffd700; margin-bottom:8px;">⏸️ اللعبة متوقفة مؤقتاً</div>
+    <div style="font-size:13.5px; color:#ddd; margin-bottom:16px;">الكاميرا السينمائية السلسة وقوائم التشغيل الأونلاين مفعلة بالكامل</div>
+    <button class="big-action-btn" onclick="togglePauseGame()">▶️ مواصلة اللعب الآن</button>
+  </div>
+</div>
+
+<div class="bottom-hint">
+  <span class="k">◀ ▶</span> الجري المتزن |
+  <span class="k">SPACE</span> قفزة واحدة (واستمر بالضغط بالهواء للمظلة 🪂) |
+  <span class="k">▲ ▼</span> تسلق السلالم والحبال |
+  <span class="k">X</span> رمي التفاح 🍎 |
+  <span class="k">Z</span> السيف ⚔️ |
+  <span class="k">C</span> المون ووك |
+  <span class="k">B</span> انحناءة 45°
+</div>
+
+<script>
+let isGamePaused = false;
+window.togglePauseGame = function() {
+  isGamePaused = !isGamePaused;
+  document.getElementById('pauseOverlay').style.display = isGamePaused ? 'flex' : 'none';
+  document.getElementById('pauseBtn').innerText = isGamePaused ? '▶️' : '⏸️';
+  if (studioAudio && studioAudio.ctx) {
+    if (isGamePaused) studioAudio.ctx.suspend();
+    else studioAudio.ctx.resume();
+  }
+};
+
+// ============================================================================
+// 1. الخامات الفيزيائية البارزة (PBR Materials & Cobra Hood Texture)
+// ============================================================================
+function createHighResSkinTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(256, 240, 30, 256, 256, 280);
+  g.addColorStop(0, '#f5d2bc');
+  g.addColorStop(0.55, '#e5b597');
+  g.addColorStop(1, '#bd8664');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.fillStyle = 'rgba(130, 62, 42, 0.28)';
+  ctx.beginPath(); ctx.ellipse(152, 305, 48, 22, 0.42, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(360, 305, 48, 22, -0.42, 0, Math.PI * 2); ctx.fill();
+  return new THREE.CanvasTexture(c);
+}
+
+function createCobraHoodTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#9b0000';
+  ctx.fillRect(0, 0, 256, 256);
+
+  ctx.fillStyle = '#ff6b00';
+  ctx.fillRect(88, 0, 80, 256);
+  ctx.strokeStyle = '#ffbe0b';
+  ctx.lineWidth = 4;
+  for (let y = 16; y < 256; y += 28) {
+    ctx.beginPath(); ctx.moveTo(88, y); ctx.lineTo(168, y); ctx.stroke();
+  }
+
+  ctx.fillStyle = '#ff7f00';
+  ctx.beginPath(); ctx.ellipse(46, 128, 26, 52, -0.15, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(210, 128, 26, 52, 0.15, 0, Math.PI * 2); ctx.fill();
+  return new THREE.CanvasTexture(c);
+}
+
+function createPatternMat(type) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  if (type === 'SANDSTONE') {
+    ctx.fillStyle = '#e8a568'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = '#8c4b1e'; ctx.lineWidth = 4;
+    for (let y = 0; y < 256; y += 64) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
+      for (let x = (y % 128 === 0 ? 0 : 64); x < 256; x += 128) {
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 64); ctx.stroke();
+      }
+    }
+  } else if (type === 'DESERT_SAND') {
+    ctx.fillStyle = '#f4c430'; ctx.fillRect(0, 0, 256, 256);
+    ctx.fillStyle = '#d49b00';
+    for (let y = 20; y < 256; y += 50) ctx.fillRect(0, y, 256, 12);
+  } else if (type === 'DUNGEON_STONE') {
+    ctx.fillStyle = '#2c3a47'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = '#111820'; ctx.lineWidth = 6;
+    for (let y = 0; y < 256; y += 64) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
+      for (let x = 32; x < 256; x += 96) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + 64); ctx.stroke(); }
+    }
+  } else if (type === 'PALACE_MARBLE') {
+    ctx.fillStyle = '#f8efba'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 5;
+    ctx.strokeRect(8, 8, 240, 240);
+  } else if (type === 'AWNING') {
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = (i % 2 === 0) ? '#00b894' : '#ffffff';
+      ctx.fillRect(i * 32, 0, 32, 256);
+    }
+  } else if (type === 'PYRAMID') {
+    ctx.fillStyle = '#e3b04b'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = '#70490c'; ctx.lineWidth = 6;
+    ctx.strokeRect(6, 6, 244, 244);
+    ctx.fillStyle = '#6b440a'; ctx.font = '38px Segoe UI';
+    ctx.fillText('𓂀 𓋹 𓆣', 24, 140);
+  } else if (type === 'JAFAR_BRICK') {
+    ctx.fillStyle = '#3b0812'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 4;
+    ctx.strokeRect(8, 8, 240, 240);
+  } else if (type === 'CARPET') {
+    ctx.fillStyle = '#3c1361'; ctx.fillRect(0, 0, 256, 256);
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 14;
+    ctx.strokeRect(10, 10, 236, 236);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return new THREE.MeshStandardMaterial({ map: tex, roughness: 0.42 });
+}
+
+const skinTexture = createHighResSkinTexture();
+const cobraHoodTexture = createCobraHoodTexture();
+const matSandstone = createPatternMat('SANDSTONE');
+const matDesertSand = createPatternMat('DESERT_SAND');
+const matDungeon = createPatternMat('DUNGEON_STONE');
+const matPalaceMarble = createPatternMat('PALACE_MARBLE');
+const matAwning = createPatternMat('AWNING');
+const matPyramid = createPatternMat('PYRAMID');
+const matJafarBrick = createPatternMat('JAFAR_BRICK');
+const matCarpet = createPatternMat('CARPET');
+
+// ============================================================================
+// 2. إعداد الرندر والكاميرا السينمائية السلسة (Smooth Spring-Damper Camera)
+// ============================================================================
+const canvas = document.getElementById('renderCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.24;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xe69a4c, 0.0028);
+
+// متغيرات الكاميرا السينمائية الناعمة لمنع أي قفزة عند التفات اللاعب!
+const camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.1, 380);
+let cameraFocusX = 2.5;
+let smoothLookAheadX = 1.2;
+let smoothLookTargetX = 3.5;
+let smoothLookTargetY = 2.5;
+let smoothCamZ = 16.0;
+let smoothCamRoll = 0.0;
+
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x443322, 1.18);
+scene.add(hemiLight);
+
+const dirLight = new THREE.DirectionalLight(0xfff4d8, 2.25);
+dirLight.position.set(20, 40, 26);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 1024;
+dirLight.shadow.mapSize.height = 1024;
+scene.add(dirLight);
+
+const heroLight = new THREE.PointLight(0xffd700, 2.5, 28);
+scene.add(heroLight);
+
+const stageRoot = new THREE.Group();
+scene.add(stageRoot);
+
+const SPARK_POOL_SIZE = 70;
+const sparkPool = [];
+const sharedSparkGeo = new THREE.OctahedronGeometry(0.09, 0);
+for (let i = 0; i < SPARK_POOL_SIZE; i++) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+  const m = new THREE.Mesh(sharedSparkGeo, mat);
+  m.visible = false;
+  scene.add(m);
+  sparkPool.push({ mesh: m, vx: 0, vy: 0, life: 0, active: false });
+}
+
+function spawnParticles(x, y, col, count) {
+  let spawned = 0;
+  for (let i = 0; i < SPARK_POOL_SIZE && spawned < count; i++) {
+    const sp = sparkPool[i];
+    if (!sp.active) {
+      sp.active = true;
+      sp.life = 0.48;
+      sp.mesh.visible = true;
+      sp.mesh.material.color.setHex(col);
+      sp.mesh.position.set(x, y, (Math.random() - 0.5) * 0.6);
+      sp.vx = (Math.random() - 0.5) * 7.5;
+      sp.vy = Math.random() * 6.0 + 1.2;
+      spawned++;
+    }
+  }
+}
+
+// ============================================================================
+// 3. النحت العضوي لمايكل جاكسون (بمفاصل كاملة من الكتف للكوع للرسغ والأصابع والورك والركبة والكاحل)
+// ============================================================================
+function createArticulatedHand(handMat, isRight, scale = 1.0) {
+  const handRoot = new THREE.Group();
+  handRoot.scale.set(scale, scale, scale);
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.052, 14, 14), handMat);
+  palm.scale.set(0.95, 1.15, 0.48);
+  palm.position.set(0, -0.045, 0);
+  handRoot.add(palm);
+
+  [-0.028, -0.009, 0.009, 0.028].forEach((fx, i) => {
+    const len = i === 1 ? 0.072 : 0.062;
+    const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.0065, len, 8), handMat);
+    finger.position.set(isRight ? fx : -fx, -0.088 - len / 2, 0.004);
+    finger.rotation.x = 0.22;
+    handRoot.add(finger);
+  });
+
+  const thumbSide = isRight ? -1 : 1;
+  const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.0095, 0.0075, 0.052, 8), handMat);
+  thumb.position.set(thumbSide * 0.046, -0.042, 0.012);
+  thumb.rotation.z = thumbSide * 0.6;
+  handRoot.add(thumb);
+  return handRoot;
+}
+
+function createMJHeroSculpted() {
+  const root = new THREE.Group();
+  const bodyPivot = new THREE.Group();
+  root.add(bodyPivot);
+
+  const skinMat = new THREE.MeshStandardMaterial({ map: skinTexture, roughness: 0.28, metalness: 0.04 });
+  const jacketMat = new THREE.MeshStandardMaterial({ color: 0xc81d25, roughness: 0.30, metalness: 0.28 });
+  const innerShirtMat = new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.4 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0x442200, emissiveIntensity: 0.35, metalness: 0.94, roughness: 0.12 });
+  const pantsMat = new THREE.MeshStandardMaterial({ color: 0x101018, roughness: 0.32 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: 0x070609, roughness: 0.16, metalness: 0.55 });
+  const sockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.0 });
+  const shoeMat = new THREE.MeshStandardMaterial({ color: 0x050508, roughness: 0.12, metalness: 0.75 });
+  const gloveMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00f0ff, emissiveIntensity: 1.1, metalness: 0.95, roughness: 0.05 });
+
+  const parachuteCloth = new THREE.Mesh(
+    new THREE.SphereGeometry(0.95, 22, 14, 0, Math.PI * 2, 0, Math.PI * 0.58),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, side: THREE.DoubleSide })
+  );
+  parachuteCloth.scale.set(1.18, 0.72, 0.95);
+  parachuteCloth.position.set(0, 2.45, 0);
+  parachuteCloth.visible = false;
+  root.add(parachuteCloth);
+
+  const magicCarpet = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.08, 1.45), matCarpet);
+  magicCarpet.position.set(0, 0.06, 0);
+  magicCarpet.visible = false;
+  root.add(magicCarpet);
+
+  const pelvis = new THREE.Group();
+  pelvis.position.y = 1.12;
+  bodyPivot.add(pelvis);
+
+  const hipMesh = new THREE.Mesh(new THREE.SphereGeometry(0.21, 22, 18), pantsMat);
+  hipMesh.scale.set(1.05, 0.85, 0.78);
+  pelvis.add(hipMesh);
+
+  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.215, 0.215, 0.065, 24), goldMat);
+  belt.scale.set(1.08, 1, 0.78);
+  belt.position.y = 0.09;
+  pelvis.add(belt);
+
+  const spine = new THREE.Group();
+  spine.position.y = 0.12;
+  pelvis.add(spine);
+
+  const torsoLathePts = [
+    new THREE.Vector2(0.19, 0.0),
+    new THREE.Vector2(0.23, 0.28),
+    new THREE.Vector2(0.31, 0.62),
+    new THREE.Vector2(0.27, 0.74)
+  ];
+  const torso = new THREE.Mesh(new THREE.LatheGeometry(torsoLathePts, 28), jacketMat);
+  torso.scale.set(1.12, 1, 0.74);
+  torso.castShadow = true;
+  spine.add(torso);
+
+  const chestV = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.52, 0.36), innerShirtMat);
+  chestV.position.set(0, 0.44, 0.05);
+  spine.add(chestV);
+
+  for (let b = 0; b < 5; b++) {
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.022, 0.03), goldMat);
+    strap.position.set(0, 0.24 + b * 0.095, 0.22);
+    spine.add(strap);
+  }
+
+  const neck = new THREE.Group();
+  neck.position.y = 0.73;
+  spine.add(neck);
+
+  const neckCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.096, 0.19, 20), skinMat);
+  neckCyl.position.y = 0.08;
+  neck.add(neckCyl);
+
+  const head = new THREE.Group();
+  head.position.y = 0.26;
+  neck.add(head);
+
+  const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.215, 36, 36), skinMat);
+  cranium.scale.set(0.91, 1.04, 0.98);
+  cranium.position.set(0, 0.03, -0.01);
+  head.add(cranium);
+
+  const jawMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.178, 0.108, 0.21, 28), skinMat);
+  jawMesh.scale.set(0.92, 1.0, 0.96);
+  jawMesh.position.set(0, -0.085, 0.025);
+  head.add(jawMesh);
+
+  [-0.125, 0.125].forEach(cx => {
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.072, 20, 20), skinMat);
+    cheek.scale.set(0.95, 0.78, 1.15);
+    cheek.position.set(cx, -0.018, 0.145);
+    head.add(cheek);
+  });
+
+  [-0.026, 0.026].forEach(chx => {
+    const chinLobe = new THREE.Mesh(new THREE.SphereGeometry(0.048, 18, 18), skinMat);
+    chinLobe.scale.set(0.95, 0.85, 1.15);
+    chinLobe.position.set(chx, -0.175, 0.152);
+    head.add(chinLobe);
+  });
+  const chinDimple = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.042, 0.018), new THREE.MeshStandardMaterial({ color: 0x8c5840 }));
+  chinDimple.position.set(0, -0.175, 0.195);
+  head.add(chinDimple);
+
+  const noseBridge = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.024, 0.115, 16), skinMat);
+  noseBridge.position.set(0, 0.018, 0.208);
+  noseBridge.rotation.x = -0.24;
+  head.add(noseBridge);
+
+  const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.024, 18, 18), skinMat);
+  noseTip.scale.set(0.92, 0.85, 1.18);
+  noseTip.position.set(0, -0.032, 0.228);
+  head.add(noseTip);
+
+  const scleraMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1 });
+  const irisMat = new THREE.MeshStandardMaterial({ color: 0x261207, roughness: 0.15 });
+  const pupilMat = new THREE.MeshBasicMaterial({ color: 0x030303 });
+  const browMat = new THREE.MeshStandardMaterial({ color: 0x0a0706, roughness: 0.35 });
+
+  const eyelids = [];
+  [-0.074, 0.074].forEach((ex, idx) => {
+    const isRightEye = idx === 1;
+    const eyeGroup = new THREE.Group();
+    eyeGroup.position.set(ex, 0.042, 0.178);
+    eyeGroup.rotation.y = isRightEye ? 0.16 : -0.16;
+    head.add(eyeGroup);
+
+    const eyeball = new THREE.Mesh(new THREE.SphereGeometry(0.036, 20, 20), scleraMat);
+    eyeball.scale.set(1.18, 0.86, 0.72);
+    eyeGroup.add(eyeball);
+
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.021, 16, 16), irisMat);
+    iris.scale.set(1.0, 1.0, 0.45);
+    iris.position.set(0, 0, 0.021);
+    eyeGroup.add(iris);
+
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.012, 14, 14), pupilMat);
+    pupil.scale.set(1.0, 1.0, 0.4);
+    pupil.position.set(0, 0, 0.027);
+    eyeGroup.add(pupil);
+
+    const lid = new THREE.Mesh(new THREE.SphereGeometry(0.038, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.52), skinMat);
+    lid.scale.set(1.18, 0.88, 0.78);
+    lid.rotation.x = -0.25;
+    eyeGroup.add(lid);
+    eyelids.push(lid);
+
+    const browPts = [
+      new THREE.Vector3(isRightEye ? -0.042 : 0.042, 0.042, 0.015),
+      new THREE.Vector3(0, 0.056, 0.022),
+      new THREE.Vector3(isRightEye ? 0.048 : -0.048, 0.036, 0.004)
+    ];
+    const browTube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(browPts), 12, 0.0085, 8, false), browMat);
+    eyeGroup.add(browTube);
+  });
+
+  const lipMat = new THREE.MeshStandardMaterial({ color: 0xb85246, roughness: 0.28 });
+  const upperLipPts = [
+    new THREE.Vector3(-0.058, -0.098, 0.178),
+    new THREE.Vector3(0, -0.090, 0.208),
+    new THREE.Vector3(0.058, -0.098, 0.178)
+  ];
+  const upperLip = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(upperLipPts), 14, 0.0105, 8, false), lipMat);
+  const smileTeeth = new THREE.Mesh(new THREE.BoxGeometry(0.076, 0.016, 0.022), scleraMat);
+  smileTeeth.position.set(0, -0.103, 0.194);
+  head.add(upperLip, smileTeeth);
+
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.232, 32, 32), hairMat);
+  hairCap.scale.set(0.95, 1.05, 1.02);
+  hairCap.position.set(0, 0.075, -0.042);
+  head.add(hairCap);
+
+  const hairStrands = [];
+  for (let i = 0; i < 36; i++) {
+    const pivot = new THREE.Group();
+    const isForeheadTendril = (i < 3);
+    let ang = isForeheadTendril ? ((i - 1) * 0.26 + 0.08) : (((i - 3) / 33) * Math.PI * 1.38 + Math.PI * 0.31);
+    let rad = 0.21;
+    let py = isForeheadTendril ? 0.135 : (0.05 - (i % 4) * 0.045);
+    let len = isForeheadTendril ? 0.23 : 0.44;
+    pivot.position.set(Math.sin(ang) * rad, py, Math.cos(ang) * rad);
+
+    const pts = [];
+    for (let s = 0; s <= 7; s++) {
+      const t = s / 7;
+      pts.push(new THREE.Vector3(Math.sin(t * 11 + i) * 0.028, -t * len, Math.cos(t * 11 + i) * 0.028));
+    }
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 14, isForeheadTendril ? 0.009 : 0.018, 8, false), hairMat);
+    pivot.add(tube);
+    head.add(pivot);
+    hairStrands.push({ pivot, baseZ: (Math.random() - 0.5) * 0.15, phase: i * 0.4 });
+  }
+
+  const fedora = new THREE.Group();
+  fedora.position.set(0, 0.205, 0.018);
+  fedora.rotation.x = 0.11;
+  head.add(fedora);
+
+  const hatMat = new THREE.MeshStandardMaterial({ color: 0x111115, roughness: 0.35 });
+  const hatBandMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.2, metalness: 0.35 });
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.47, 0.024, 32), hatMat);
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.195, 0.235, 0.21, 32), hatMat);
+  crown.position.y = 0.105;
+  const ribbon = new THREE.Mesh(new THREE.CylinderGeometry(0.228, 0.238, 0.048, 32), hatBandMat);
+  ribbon.position.y = 0.032;
+  fedora.add(brim, crown, ribbon);
+
+  let scimitarGroup = new THREE.Group();
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00e5ff, emissiveIntensity: 0.75, metalness: 0.95, roughness: 0.05 });
+  const bladePts = [new THREE.Vector3(0, 0.1, 0), new THREE.Vector3(0, 0.55, 0.08), new THREE.Vector3(0, 1.05, 0.26)];
+  const bladeMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(bladePts), 16, 0.052, 8, false), bladeMat);
+  bladeMesh.scale.set(0.22, 1, 1.45);
+  scimitarGroup.add(bladeMesh);
+  scimitarGroup.rotation.x = Math.PI * 0.48;
+  scimitarGroup.visible = false;
+
+  function makeArm(isRight) {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(isRight ? 0.35 : -0.35, 0.63, 0);
+    spine.add(shoulder);
+
+    const deltoid = new THREE.Mesh(new THREE.SphereGeometry(0.088, 14, 14), jacketMat);
+    shoulder.add(deltoid);
+
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.068, 0.36, 18), jacketMat);
+    upper.position.y = -0.18;
+    shoulder.add(upper);
+
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.36;
+    shoulder.add(elbow);
+
+    const elbowSphere = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 12), jacketMat);
+    elbow.add(elbowSphere);
+
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.052, 0.30, 18), jacketMat);
+    forearm.position.y = -0.15;
+    elbow.add(forearm);
+
+    const handGroup = createArticulatedHand(isRight ? gloveMat : skinMat, isRight, 1.15);
+    handGroup.position.y = -0.32;
+    elbow.add(handGroup);
+
+    if (isRight) handGroup.add(scimitarGroup);
+    return { shoulder, elbow, hand: handGroup };
+  }
+
+  function makeLeg(isRight) {
+    const hip = new THREE.Group();
+    hip.position.set(isRight ? 0.135 : -0.135, -0.04, 0);
+    pelvis.add(hip);
+
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.108, 0.084, 0.48, 20), pantsMat);
+    thigh.position.y = -0.24;
+    hip.add(thigh);
+
+    const knee = new THREE.Group();
+    knee.position.y = -0.48;
+    hip.add(knee);
+
+    const kneeCap = new THREE.Mesh(new THREE.SphereGeometry(0.084, 14, 14), pantsMat);
+    knee.add(kneeCap);
+
+    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.084, 0.064, 0.34, 20), pantsMat);
+    calf.position.y = -0.17;
+    knee.add(calf);
+
+    const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.058, 0.19, 18), sockMat);
+    sock.position.y = -0.41;
+    knee.add(sock);
+
+    const ankle = new THREE.Group();
+    ankle.position.set(0, -0.52, 0);
+    knee.add(ankle);
+
+    const shoeBody = new THREE.Mesh(new THREE.SphereGeometry(0.090, 18, 18), shoeMat);
+    shoeBody.scale.set(0.84, 0.52, 1.72);
+    shoeBody.position.set(0, -0.02, 0.065);
+    ankle.add(shoeBody);
+
+    return { hip, knee, ankle };
+  }
+
+  return {
+    root, bodyPivot, pelvis, spine, neck, head, fedora, eyelids,
+    parachuteCloth, magicCarpet, scimitarGroup,
+    leftArm: makeArm(false), rightArm: makeArm(true),
+    leftLeg: makeLeg(false), rightLeg: makeLeg(true),
+    hairStrands,
+    jacketMat, innerShirtMat, goldMat, pantsMat, hatMat, hatBandMat
+  };
+}
+
+// ============================================================================
+// 4. نحت عضوي كامل للعفريت الأزرق والقرد آبو بمفاصل متحركة بالكامل!
+// ============================================================================
+function createOrganicGenieAndAbu() {
+  const squadRoot = new THREE.Group();
+
+  const genieGroup = new THREE.Group();
+  genieGroup.scale.set(0.76, 0.76, 0.76);
+  squadRoot.add(genieGroup);
+
+  const genieSkinMat = new THREE.MeshStandardMaterial({ color: 0x38a8ff, emissive: 0x002b66, emissiveIntensity: 0.22, roughness: 0.26 });
+  const redSashMat = new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.35 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffbe0b, metalness: 0.92, roughness: 0.14 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.12 });
+  const hairBlackMat = new THREE.MeshStandardMaterial({ color: 0x0c0a0e, roughness: 0.22 });
+  const tongueMat = new THREE.MeshStandardMaterial({ color: 0xe05668 });
+
+  const tailLoopPts = [
+    new THREE.Vector3(0, 0.18, 0),
+    new THREE.Vector3(-0.28, -0.22, 0.12),
+    new THREE.Vector3(-0.52, -0.45, 0),
+    new THREE.Vector3(-0.30, -0.72, -0.12),
+    new THREE.Vector3(0.10, -0.98, 0),
+    new THREE.Vector3(0.42, -1.22, 0)
+  ];
+  const tailCurve = new THREE.CatmullRomCurve3(tailLoopPts);
+  const tailSegments = [];
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16;
+    const pt = tailCurve.getPoint(t);
+    const seg = new THREE.Mesh(new THREE.SphereGeometry((1 - t * 0.82) * 0.27 + 0.025, 16, 16), genieSkinMat);
+    seg.position.copy(pt);
+    genieGroup.add(seg);
+    tailSegments.push({ mesh: seg, baseX: pt.x, baseY: pt.y, idx: i });
+  }
+
+  const sash = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.085, 14, 24), redSashMat);
+  sash.rotation.x = Math.PI / 2 + 0.15;
+  sash.position.set(0, 0.20, 0);
+  genieGroup.add(sash);
+
+  const genieTorsoPts = [
+    new THREE.Vector2(0.22, 0.18),
+    new THREE.Vector2(0.44, 0.52),
+    new THREE.Vector2(0.65, 0.90),
+    new THREE.Vector2(0.54, 1.24),
+    new THREE.Vector2(0.20, 1.36)
+  ];
+  const genieTorso = new THREE.Mesh(new THREE.LatheGeometry(genieTorsoPts, 28), genieSkinMat);
+  genieTorso.scale.set(1.06, 1.0, 0.85);
+  genieGroup.add(genieTorso);
+
+  const gHead = new THREE.Group();
+  gHead.position.set(0.06, 1.52, 0);
+  genieGroup.add(gHead);
+
+  const gCranium = new THREE.Mesh(new THREE.SphereGeometry(0.26, 22, 22), genieSkinMat);
+  gCranium.scale.set(0.95, 1.1, 0.92);
+  gCranium.position.y = 0.10;
+  const gJaw = new THREE.Mesh(new THREE.SphereGeometry(0.30, 22, 22), genieSkinMat);
+  gJaw.scale.set(1.18, 0.78, 1.02);
+  gJaw.position.set(0.08, -0.10, 0);
+  const gSmile = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.09, 18, 1, false, -0.2, Math.PI * 0.75), whiteMat);
+  gSmile.position.set(0.12, -0.04, 0);
+  const gMouth = new THREE.Mesh(new THREE.SphereGeometry(0.20, 14, 14), tongueMat);
+  gMouth.scale.set(1, 0.5, 0.8);
+  gMouth.position.set(0.11, -0.09, 0);
+  gHead.add(gCranium, gJaw, gSmile, gMouth);
+
+  const beardPts = [new THREE.Vector3(0.04, -0.02, 0.26), new THREE.Vector3(0.18, -0.24, 0.14), new THREE.Vector3(0.34, -0.26, 0), new THREE.Vector3(0.40, -0.16, 0)];
+  const beardL = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(beardPts), 14, 0.025, 8, false), hairBlackMat);
+  const beardR = beardL.clone(); beardR.scale.z = -1;
+  gHead.add(beardL, beardR);
+
+  [-0.065, 0.065].forEach(ez => {
+    const eyeW = new THREE.Mesh(new THREE.SphereGeometry(0.065, 14, 14), whiteMat);
+    eyeW.scale.set(0.55, 1.2, 0.85);
+    eyeW.position.set(0.22, 0.15, ez);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 10), hairBlackMat);
+    pupil.position.set(0.26, 0.15, ez * 0.85);
+    gHead.add(eyeW, pupil);
+  });
+
+  const ponytailPts = [new THREE.Vector3(-0.06, 0.35, 0), new THREE.Vector3(-0.14, 0.54, 0), new THREE.Vector3(-0.30, 0.58, 0)];
+  const ponytail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ponytailPts), 12, 0.042, 8, false), hairBlackMat);
+  gHead.add(ponytail);
+
+  function makeGenieArm(isLeft) {
+    const sh = new THREE.Group();
+    sh.position.set(0.05, 1.05, isLeft ? 0.56 : -0.56);
+    genieGroup.add(sh);
+    const bicep = new THREE.Mesh(new THREE.SphereGeometry(0.21, 16, 16), genieSkinMat);
+    bicep.scale.set(1.0, 1.45, 1.0);
+    bicep.position.y = -0.18;
+    sh.add(bicep);
+
+    const elb = new THREE.Group();
+    elb.position.set(0.10, -0.34, 0);
+    sh.add(elb);
+    const forearm = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 16), genieSkinMat);
+    forearm.scale.set(0.95, 1.4, 0.95);
+    forearm.position.y = -0.16;
+    const goldCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.145, 0.15, 18), goldMat);
+    goldCuff.position.y = -0.28;
+    const hand = createArticulatedHand(genieSkinMat, !isLeft, 1.4);
+    hand.position.y = -0.36;
+    hand.rotation.y = Math.PI / 2;
+    elb.add(forearm, goldCuff, hand);
+    return { sh, elb };
+  }
+  const genieArmL = makeGenieArm(true);
+  const genieArmR = makeGenieArm(false);
+
+  const abuGroup = new THREE.Group();
+  squadRoot.add(abuGroup);
+
+  const furBrownMat = new THREE.MeshStandardMaterial({ color: 0xa65e2e, roughness: 0.42 });
+  const faceTanMat = new THREE.MeshStandardMaterial({ color: 0xf3cfb3, roughness: 0.35 });
+  const vestMaroonMat = new THREE.MeshStandardMaterial({ color: 0x801828, roughness: 0.38 });
+  const fezPurpleMat = new THREE.MeshStandardMaterial({ color: 0x6c5ce7, roughness: 0.35 });
+
+  const abuPelvis = new THREE.Group();
+  abuPelvis.position.y = 0.36;
+  abuGroup.add(abuPelvis);
+
+  const abuTorso = new THREE.Mesh(new THREE.SphereGeometry(0.21, 20, 20), furBrownMat);
+  abuTorso.scale.set(0.92, 1.28, 0.86);
+  abuTorso.position.y = 0.16;
+  abuPelvis.add(abuTorso);
+
+  [-0.10, 0.10].forEach(vz => {
+    const vestSide = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 14), vestMaroonMat);
+    vestSide.scale.set(0.85, 1.35, 0.65);
+    vestSide.position.set(0.02, 0.18, vz);
+    abuPelvis.add(vestSide);
+  });
+
+  const abuHead = new THREE.Group();
+  abuHead.position.set(0.05, 0.52, 0);
+  abuPelvis.add(abuHead);
+
+  const headFur = new THREE.Mesh(new THREE.SphereGeometry(0.20, 20, 20), furBrownMat);
+  const eyeMask = new THREE.Mesh(new THREE.SphereGeometry(0.175, 18, 18), faceTanMat);
+  eyeMask.scale.set(0.85, 0.95, 1.05);
+  eyeMask.position.set(0.07, 0.02, 0);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.135, 18, 18), faceTanMat);
+  muzzle.scale.set(1.25, 0.68, 0.98);
+  muzzle.position.set(0.14, -0.07, 0);
+  abuHead.add(headFur, eyeMask, muzzle);
+
+  [-0.062, 0.062].forEach(ez => {
+    const bigEye = new THREE.Mesh(new THREE.SphereGeometry(0.058, 14, 14), whiteMat);
+    bigEye.scale.set(0.55, 1.18, 0.88);
+    bigEye.position.set(0.19, 0.03, ez);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 10), hairBlackMat);
+    pupil.position.set(0.22, 0.03, ez * 0.85);
+    abuHead.add(bigEye, pupil);
+  });
+
+  [-0.21, 0.21].forEach(earZ => {
+    const earOuter = new THREE.Mesh(new THREE.SphereGeometry(0.095, 14, 14), faceTanMat);
+    earOuter.scale.set(0.38, 1.05, 0.95);
+    earOuter.position.set(-0.02, -0.01, earZ);
+    abuHead.add(earOuter);
+  });
+
+  const hairTuft = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.22, 10), furBrownMat);
+  hairTuft.rotation.z = -1.1;
+  hairTuft.position.set(0.12, 0.21, 0);
+  const fezHat = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.098, 0.15, 14), fezPurpleMat);
+  fezHat.rotation.z = 0.55;
+  fezHat.position.set(-0.12, 0.19, 0);
+  abuHead.add(hairTuft, fezHat);
+
+  const abuTailPts = [new THREE.Vector3(-0.16, 0.0, 0), new THREE.Vector3(-0.38, 0.22, 0), new THREE.Vector3(-0.52, 0.55, 0)];
+  const abuTail = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(abuTailPts), 14, 0.028, 8, false), furBrownMat);
+  abuPelvis.add(abuTail);
+
+  function makeAbuLimb(zOff, isArm) {
+    const joint1 = new THREE.Group();
+    joint1.position.set(0.02, isArm ? 0.30 : -0.05, zOff);
+    abuPelvis.add(joint1);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.038, 0.24, 12), furBrownMat);
+    upper.position.y = -0.12;
+    joint1.add(upper);
+
+    const joint2 = new THREE.Group();
+    joint2.position.y = -0.24;
+    joint1.add(joint2);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.032, 0.22, 12), furBrownMat);
+    lower.position.y = -0.11;
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.052, 10, 10), faceTanMat);
+    paw.scale.set(1.45, 0.55, 0.9);
+    paw.position.set(0.04, -0.22, 0);
+    joint2.add(lower, paw);
+    return { joint1, joint2 };
+  }
+
+  const abuLegL = makeAbuLimb(-0.11, false);
+  const abuLegR = makeAbuLimb(0.11, false);
+  const abuArmL = makeAbuLimb(-0.18, true);
+  const abuArmR = makeAbuLimb(0.18, true);
+
+  return {
+    root: squadRoot,
+    genieGroup, gHead, tailSegments, genieArmL, genieArmR,
+    abuGroup, abuPelvis, abuHead, abuLegL, abuLegR, abuArmL, abuArmR,
+    abuX: -1.5, abuY: 0,
+    genieX: -1.2, genieY: 2.0,
+    animPhase: 0,
+    genieZapCooldown: 0
+  };
+}
+
+// ============================================================================
+// 5. نحت الأعداء والكوبرا الملكية الملتفة ذات القلنسوة العريضة
+// ============================================================================
+function createSculptedCobraMesh(isGiantBoss = false) {
+  const root = new THREE.Group();
+  const sc = isGiantBoss ? 2.15 : 1.05;
+  root.scale.set(sc, sc, sc);
+
+  const blackScaleMat = new THREE.MeshStandardMaterial({ color: 0x111116, roughness: 0.22, metalness: 0.35 });
+  const redPatternMat = new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.3 });
+  const hoodMat = new THREE.MeshStandardMaterial({ map: cobraHoodTexture, roughness: 0.28, side: THREE.DoubleSide });
+  const orangeBellyMat = new THREE.MeshStandardMaterial({ color: 0xff6b00, roughness: 0.3 });
+
+  const coilPts = [];
+  for (let i = 0; i <= 28; i++) {
+    const t = i / 28;
+    const ang = t * Math.PI * 3.5;
+    const rad = (1 - t * 0.55) * 0.65 + 0.12;
+    coilPts.push(new THREE.Vector3(Math.cos(ang) * rad - 0.15, 0.12 + t * 0.18, Math.sin(ang) * rad * 0.75));
+  }
+  const coilCurve = new THREE.CatmullRomCurve3(coilPts);
+  const coilGeo = new THREE.TubeGeometry(coilCurve, 36, 0.13, 12, false);
+  const coilMesh = new THREE.Mesh(coilGeo, blackScaleMat);
+  root.add(coilMesh);
+
+  for (let m = 2; m < 24; m += 3) {
+    const pt = coilCurve.getPoint(m / 28);
+    const redDiamond = new THREE.Mesh(new THREE.OctahedronGeometry(0.14, 0), redPatternMat);
+    redDiamond.scale.set(1.1, 0.6, 1.1);
+    redDiamond.position.copy(pt);
+    root.add(redDiamond);
+  }
+
+  const neckPivot = new THREE.Group();
+  neckPivot.position.set(0.05, 0.22, 0);
+  root.add(neckPivot);
+
+  const hoodLathePts = [
+    new THREE.Vector2(0.13, 0.0),
+    new THREE.Vector2(0.18, 0.35),
+    new THREE.Vector2(0.46, 0.78),
+    new THREE.Vector2(0.52, 1.05),
+    new THREE.Vector2(0.38, 1.28),
+    new THREE.Vector2(0.15, 1.38)
+  ];
+  const hoodMesh = new THREE.Mesh(new THREE.LatheGeometry(hoodLathePts, 24), hoodMat);
+  hoodMesh.scale.set(0.36, 1.0, 1.15);
+  hoodMesh.rotation.y = Math.PI / 2;
+  neckPivot.add(hoodMesh);
+
+  const cobraHead = new THREE.Group();
+  cobraHead.position.set(0.12, 1.36, 0);
+  neckPivot.add(cobraHead);
+
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), orangeBellyMat);
+  snout.scale.set(1.45, 0.68, 1.05);
+  const browCap = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 14), blackScaleMat);
+  browCap.scale.set(1.2, 0.5, 1.1);
+  browCap.position.set(-0.02, 0.06, 0);
+  cobraHead.add(snout, browCap);
+
+  [-0.10, 0.10].forEach(ez => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 10), new THREE.MeshBasicMaterial({ color: 0xff0022 }));
+    eye.position.set(0.14, 0.04, ez);
+    cobraHead.add(eye);
+  });
+
+  const forkedTongue = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.018, 0.045), new THREE.MeshBasicMaterial({ color: 0xff0044 }));
+  forkedTongue.position.set(0.28, -0.02, 0);
+  cobraHead.add(forkedTongue);
+
+  root.userData = { isSnake: true, neckPivot, cobraHead, forkedTongue };
+  return root;
+}
+
+function createDiverseEnemyMesh(type, isBoss) {
+  if (type === 'NATURAL_SNAKE') return createSculptedCobraMesh(false);
+  if (type === 'JAFAR_COBRA') return createSculptedCobraMesh(true);
+
+  const root = new THREE.Group();
+  const sc = isBoss ? 1.52 : 1.0;
+  root.scale.set(sc, sc, sc);
+
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xd19062, roughness: 0.36 });
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.92, roughness: 0.1 });
+
+  if (type === 'LAVA_BAT') {
+    const batMat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xaa1100, emissiveIntensity: 0.7 });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 14), batMat);
+    const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.06, 0.78), batMat);
+    wingL.position.z = 0.4;
+    const wingR = wingL.clone();
+    wingR.position.z = -0.4;
+    root.add(core, wingL, wingR);
+    root.userData = { isBat: true, wingL, wingR };
+    return root;
+  }
+
+  const isFemale = (type === 'FEMALE_WARRIOR');
+  const vestMat = new THREE.MeshStandardMaterial({ color: isFemale ? 0xe84393 : (isBoss ? 0x5f27cd : 0x222f3e), roughness: 0.38 });
+  const pantsMat = new THREE.MeshStandardMaterial({ color: isFemale ? 0xff7eb3 : (isBoss ? 0xfeca57 : 0xf5f6fa), roughness: 0.35 });
+  const sashMat = new THREE.MeshStandardMaterial({ color: 0xd90429, roughness: 0.4 });
+  const bootMat = new THREE.MeshStandardMaterial({ color: 0x4a2511, roughness: 0.5 });
+
+  const pelvis = new THREE.Group();
+  pelvis.position.y = 0.96;
+  root.add(pelvis);
+
+  const puffyHaremHip = new THREE.Mesh(new THREE.SphereGeometry(isFemale ? 0.32 : 0.42, 20, 20), pantsMat);
+  puffyHaremHip.scale.set(1.05, 0.78, 1.0);
+  puffyHaremHip.position.y = -0.10;
+  pelvis.add(puffyHaremHip);
+
+  function makeLeg(zOff) {
+    const hipJoint = new THREE.Group();
+    hipJoint.position.set(0, -0.05, zOff);
+    pelvis.add(hipJoint);
+
+    const puffyLeg = new THREE.Mesh(new THREE.SphereGeometry(isFemale ? 0.22 : 0.28, 18, 18), pantsMat);
+    puffyLeg.scale.set(1.08, 1.18, 0.96);
+    puffyLeg.position.y = -0.24;
+    hipJoint.add(puffyLeg);
+
+    const kneeJoint = new THREE.Group();
+    kneeJoint.position.y = -0.46;
+    hipJoint.add(kneeJoint);
+
+    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.36, 14), skinMat);
+    shin.position.y = -0.18;
+    const boot = new THREE.Mesh(new THREE.SphereGeometry(0.10, 12, 12), bootMat);
+    boot.scale.set(1.6, 0.55, 0.9);
+    boot.position.set(0.07, -0.37, 0);
+    kneeJoint.add(shin, boot);
+    return { hipJoint, kneeJoint };
+  }
+
+  const leftLeg = makeLeg(isFemale ? -0.13 : -0.16);
+  const rightLeg = makeLeg(isFemale ? 0.13 : 0.16);
+
+  const torsoLathe = [
+    new THREE.Vector2(isFemale ? 0.16 : 0.28, 0.0),
+    new THREE.Vector2(isFemale ? 0.22 : 0.38, 0.38),
+    new THREE.Vector2(isFemale ? 0.24 : 0.42, 0.62),
+    new THREE.Vector2(0.18, 0.70)
+  ];
+  const chest = new THREE.Mesh(new THREE.LatheGeometry(torsoLathe, 22), vestMat);
+  const sash = new THREE.Mesh(new THREE.CylinderGeometry(isFemale ? 0.20 : 0.34, isFemale ? 0.20 : 0.33, 0.16, 20), sashMat);
+  sash.position.y = 0.08;
+
+  const head = new THREE.Group();
+  head.position.y = 0.85;
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.22, 18, 18), skinMat);
+  const headGear = new THREE.Mesh(new THREE.SphereGeometry(0.25, 18, 18), isFemale ? vestMat : pantsMat);
+  headGear.position.set(-0.02, 0.12, 0);
+  head.add(skull, headGear);
+
+  const armR = new THREE.Group();
+  armR.position.set(0, 0.60, isFemale ? 0.28 : 0.38);
+  const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.07, 0.28, 12), skinMat);
+  upperArm.position.y = -0.14;
+  const elbowR = new THREE.Group();
+  elbowR.position.y = -0.28;
+  const foreArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.24, 12), skinMat);
+  foreArm.position.y = -0.12;
+  const sword = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.09, 0.03), steelMat);
+  sword.position.set(0.26, -0.22, 0);
+  elbowR.add(foreArm, sword);
+  armR.add(upperArm, elbowR);
+
+  pelvis.add(chest, sash, head, armR);
+
+  const dizzyRing = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.04, 8, 16), new THREE.MeshBasicMaterial({ color: 0xffd700 }));
+  dizzyRing.rotation.x = Math.PI / 2;
+  dizzyRing.position.y = 2.15;
+  dizzyRing.visible = false;
+  root.add(dizzyRing);
+
+  root.userData = { pelvis, head, leftLeg, rightLeg, armR, elbowR, dizzyRing, isFemale };
+  return root;
+}
+
+const mj = createMJHeroSculpted();
+scene.add(mj.root);
+
+const companions = createOrganicGenieAndAbu();
+scene.add(companions.root);
+
+window.setCompanionMode = function(mode) {
+  companions.root.visible = (mode !== 'NONE');
+  companions.genieGroup.visible = (mode === 'BOTH' || mode === 'GENIE');
+  companions.abuGroup.visible = (mode === 'BOTH' || mode === 'ABU');
+};
+
+const OUTFITS = [
+  { jacket: 0xc81d25, shirt: 0x111115, gold: 0xffd700, pants: 0x101015, hatColor: 0x111115, bandColor: 0x050505 },
+  { jacket: 0xf5f7fa, shirt: 0x00a8ff, gold: 0xffffff, pants: 0xeaeef5, hatColor: 0xffffff, bandColor: 0x111111 },
+  { jacket: 0x6a1b9a, shirt: 0xf5d2bc, gold: 0xffd700, pants: 0xf7f5f0, hatColor: 0xc81d25, bandColor: 0xffd700 },
+  { jacket: 0xd91424, shirt: 0x111111, gold: 0x111111, pants: 0xb5101d, hatColor: 0x111115, bandColor: 0xd91424 },
+  { jacket: 0xffd700, shirt: 0x222222, gold: 0xffffff, pants: 0xd4af37, hatColor: 0xffd700, bandColor: 0x111111 }
+];
+window.equipMJOutfit = function(idx) {
+  const o = OUTFITS[idx];
+  mj.jacketMat.color.setHex(o.jacket);
+  mj.innerShirtMat.color.setHex(o.shirt);
+  mj.goldMat.color.setHex(o.gold);
+  mj.pantsMat.color.setHex(o.pants);
+  mj.hatMat.color.setHex(o.hatColor);
+  mj.hatBandMat.color.setHex(o.bandColor);
+};
+
+// ============================================================================
+// 6. بناء الـ 15 مرحلة المتنوعة وتنظيف الذاكرة الصارم
+// ============================================================================
+const STORY_CHAPTERS = [
+  { id: 0,  theme: 'MARKET',         song: 0, title: "1. سوق عقربة التجاري",            sub: "اقفز فوق الأكشاك وتفادَ الحفر والثعابين والبراميل المتدحرجة!", skyTop: 0x2980b9, skyBot: 0xf39c12, boss: null },
+  { id: 1,  theme: 'DESERT',         song: 5, title: "2. كثبان الصحراء والواحة",        sub: "ارتدّ على الجمال الصحراوية واحذر انقضاض أفاعي الكوبرا!", skyTop: 0x1e90ff, skyBot: 0xfad390, boss: null },
+  { id: 2,  theme: 'ROOFTOPS',       song: 1, title: "3. أسطح عقربة وقت الغروب",       sub: "انزلق على حبال الغسيل وواجه المقاتلات والزعيم فركوت!", skyTop: 0x833471, skyBot: 0xff7f50, boss: 'FAROUK_BOSS', bossName: "فركوت زعيم السوق" },
+  { id: 3,  theme: 'DUNGEON',        song: 3, title: "4. زنازين السلطان المظلمة",      sub: "تجاوز حفر السجن السحيقة والمنصات المعلقة بالسلاسل!", skyTop: 0x0a0d2a, skyBot: 0x1e272e, boss: null },
+  { id: 4,  theme: 'CAVE_ENTRANCE',  song: 3, title: "5. مدخل كهف العجائب",            sub: "ادخل فم النمر واقفز فوق الأحجار المنقلبة فوق الهاوية!", skyTop: 0x130f40, skyBot: 0x30336b, boss: null },
+  { id: 5,  theme: 'WATER_LAGOON',   song: 5, title: "6. البحيرة الجوفية والشلالات",    sub: "ابقَ فوق الجذوع العائمة! السقوط في المياه ينقص صحتك تدريجياً!", skyTop: 0x051937, skyBot: 0x008793, boss: null },
+  { id: 6,  theme: 'GOLD_TREASURE',  song: 4, title: "7. قاعة كنوز الذهب والمصباح",     sub: "اصعد تلال الذهب اللامعة واهزم حارس الكنز المدرع!", skyTop: 0x2c1b06, skyBot: 0xd4af37, boss: 'CAVE_GUARDIAN', bossName: "حارس كنز الكهف" },
+  { id: 7,  theme: 'LAVA_GEYSERS',   song: 2, title: "8. ثوران البركان ونوافير الحمم",   sub: "اقفز على الصخور التي ترفعها نوافير النار ولا تسقط في اللافا!", skyTop: 0x3b0000, skyBot: 0xff3838, boss: null },
+  { id: 8,  theme: 'CARPET_VOLCANO', song: 2, title: "9. سباق الهروب بالبساط السحري",   sub: "مطاردة مستمرة بلا توقف! اسبق موجة اللافا وتفادَ خفافيش النار!", skyTop: 0x4a0000, skyBot: 0xff4d4d, boss: null },
+  { id: 9,  theme: 'LAMP_HANDS',     song: 4, title: "10. داخل المصباح: أيدي الجني",   sub: "اقفز بدقة فوق أيدي الجني الزرقاء والبالونات ولا تسقط في الهاوية!", skyTop: 0x3c40c6, skyBot: 0xff85e4, boss: null },
+  { id: 10, theme: 'LAMP_TONGUES',   song: 0, title: "11. ألسنة الجني والزنبركات",      sub: "اصعد فوق ألسنة الجني الوردية والمكعبات الغمازة!", skyTop: 0x006266, skyBot: 0x55efc4, boss: null },
+  { id: 11, theme: 'PYRAMID_SANDS',  song: 5, title: "12. أهرامات الفراعنة القديمة",     sub: "تسلق الهرم المدرج وتجاوز شلالات الرمال والزعيم الفرعوني!", skyTop: 0x5c3c10, skyBot: 0xf4c430, boss: 'PHARAOH_BOSS', bossName: "الحارس الفرعوني" },
+  { id: 12, theme: 'SULTAN_GARDENS', song: 1, title: "13. حدائق وشرفات قصر السلطان",    sub: "اقفز فوق طيور الفلامنغو وشرفات المرمر الملكية!", skyTop: 0x5f27cd, skyBot: 0xff9ff3, boss: null },
+  { id: 13, theme: 'CARPET_NIGHT',   song: 0, title: "14. رحلة البساط في سماء عقربة",   sub: "حلق فوق قباب عقربة الليلية واشتبك مع الحراس الطائرين!", skyTop: 0x04021c, skyBot: 0x192a56, boss: null },
+  { id: 14, theme: 'JAFAR_FINAL',    song: 2, title: "15. قلعة جعفر والمعركة النهائية", sub: "اصعد السيوف المغروسة واهزم جعفر والأفعى الكوبرا العملاقة!", skyTop: 0x1a0005, skyBot: 0xeb2f06, boss: 'JAFAR_COBRA', bossName: "جعفر والأفعى الكوبرا" }
+];
+
+let solidBlocks = [];
+let floorDeckList = [];
+let climbLadders = [];
+let ziplines = [];
+let springBouncers = [];
+let sandWaterfalls = [];
+let movingPlatforms = [];
+let flippingStones = [];
+let rollingBarrels = [];
+let treasureChests = [];
+let collectiblesList = [];
+let enemies = [];
+let playerProjectiles = [];
+let lavaWallMesh = null;
+let lavaChaserX = -15;
+let stageExitSign = null;
+let curStage = 0;
+
+const sharedPersistentMats = new Set([matSandstone, matDesertSand, matDungeon, matPalaceMarble, matAwning, matPyramid, matJafarBrick, matCarpet]);
+function disposeStageResources() {
+  stageRoot.traverse((obj) => {
+    if (obj.isMesh) {
+      if (obj.geometry && obj.geometry !== sharedSparkGeo) obj.geometry.dispose();
+      if (obj.material && !sharedPersistentMats.has(obj.material)) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    }
+  });
+  while (stageRoot.children.length > 0) stageRoot.remove(stageRoot.children[0]);
+}
+
+function spawnCollectibleItem(x, y, type) {
+  let cMesh;
+  if (type === 'GOLDEN_APPLE_PACK') {
+    cMesh = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 14), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xff8800, emissiveIntensity: 0.7, metalness: 0.9 }));
+  } else if (type === 'RED_RUBY') {
+    cMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.34, 0), new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0x880022, metalness: 0.9 }));
+  } else {
+    cMesh = new THREE.Mesh(new THREE.SphereGeometry(0.23, 12, 12), new THREE.MeshStandardMaterial({ color: 0xff1744, emissive: 0x550000 }));
+  }
+  cMesh.position.set(x, y, 0);
+  stageRoot.add(cMesh);
+  collectiblesList.push({ mesh: cMesh, type, x, y });
+}
+
+function spawnEnemyUnit(x, y, minX, maxX, type, isBoss) {
+  const mesh = createDiverseEnemyMesh(type, isBoss);
+  mesh.position.set(x, y, 0);
+  stageRoot.add(mesh);
+  enemies.push({
+    mesh, type, isBoss, x, y, baseY: y, minX, maxX, patrolDir: -1,
+    hp: isBoss ? 160 : (type === 'NATURAL_SNAKE' ? 20 : 24),
+    maxHp: isBoss ? 160 : 24,
+    stunTimer: 0, lungeCooldown: 0, walkCycle: Math.random() * 6
+  });
+}
+
+function addChest(x, y) {
+  const chestMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0, 0.75, 0.75),
+    new THREE.MeshStandardMaterial({ color: 0xffb700, emissive: 0x442200, metalness: 0.9 })
+  );
+  chestMesh.position.set(x, y + 0.38, 0);
+  stageRoot.add(chestMesh);
+  treasureChests.push({ mesh: chestMesh, x, y: y + 0.38, opened: false });
+}
+
+function addLadder(x, yMin, yMax) {
+  const h = yMax - yMin;
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
+  [-0.35, 0.35].forEach(rx => {
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h, 8), mat);
+    rail.position.set(rx, yMin + h / 2, 0);
+    g.add(rail);
+  });
+  for (let ry = yMin + 0.4; ry <= yMax; ry += 0.55) {
+    const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.72, 8), mat);
+    rung.rotation.z = Math.PI / 2;
+    rung.position.set(0, ry, 0);
+    g.add(rung);
+  }
+  g.position.x = x;
+  stageRoot.add(g);
+  climbLadders.push({ x, yMin, yMax: yMax + 0.2 });
+}
+
+function buildSegmentedGroundWithPits(totalLen, mat, pitFrequency = 38, pitWidth = 5.5) {
+  let curX = -12;
+  while (curX < totalLen + 20) {
+    const segLen = Math.min(pitFrequency, (totalLen + 20) - curX);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(segLen, 4, 9.5), mat);
+    mesh.position.set(curX + segLen / 2, -2, 0);
+    stageRoot.add(mesh);
+    floorDeckList.push({ xStart: curX, xEnd: curX + segLen, yTop: 0 });
+    curX += segLen + pitWidth;
+  }
+}
+
+window.buildStage = function(idx) {
+  curStage = idx;
+  const stg = STORY_CHAPTERS[idx];
+  document.getElementById('mjCelebrationBanner').style.display = 'none';
+  document.getElementById('waterWarningBanner').style.display = 'none';
+  document.getElementById('storyChapterTitle').innerText = stg.title;
+  document.getElementById('storyChapterSub').innerText = stg.sub;
+  const banner = document.getElementById('storyChapterBanner');
+  banner.style.opacity = '1';
+  setTimeout(() => { banner.style.opacity = '0'; }, 4500);
+
+  disposeStageResources();
+  solidBlocks = [];
+  floorDeckList = [];
+  climbLadders = [];
+  ziplines = [];
+  springBouncers = [];
+  sandWaterfalls = [];
+  movingPlatforms = [];
+  flippingStones = [];
+  rollingBarrels = [];
+  treasureChests = [];
+  collectiblesList = [];
+  enemies = [];
+  playerProjectiles = [];
+  lavaWallMesh = null;
+
+  renderer.setClearColor(stg.skyTop);
+  scene.fog.color.setHex(stg.skyBot);
+
+  const isCarpetFlight = (stg.theme === 'CARPET_VOLCANO' || stg.theme === 'CARPET_NIGHT');
+  mj.magicCarpet.visible = isCarpetFlight;
+  const totalLen = 210;
+
+  if (stg.theme === 'MARKET') {
+    buildSegmentedGroundWithPits(totalLen, matSandstone, 36, 5.2);
+    for (let x = 14; x < totalLen - 22; x += 26) {
+      const awning = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.35, 2.8), matAwning);
+      awning.position.set(x, 2.3, 0);
+      stageRoot.add(awning);
+      springBouncers.push({ mesh: awning, x, yTop: 2.5 });
+
+      const houseX = x + 9;
+      const roofDeck = new THREE.Mesh(new THREE.BoxGeometry(9.5, 0.5, 3.8), matSandstone);
+      roofDeck.position.set(houseX, 4.4, 0);
+      stageRoot.add(roofDeck);
+      solidBlocks.push({ xMin: houseX - 4.75, xMax: houseX + 4.75, yMin: 4.15, yMax: 4.65, oneWayTop: true, active: true });
+      addLadder(houseX - 3.8, 0, 4.65);
+
+      spawnEnemyUnit(houseX, 4.65, houseX - 3.8, houseX + 3.8, 'GUARD', false);
+      spawnEnemyUnit(x + 3, 0, x - 2, x + 7, 'NATURAL_SNAKE', false);
+
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.9, 14), new THREE.MeshStandardMaterial({ color: 0x6e4720 }));
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(houseX + 8, 0.45, 0);
+      stageRoot.add(barrel);
+      rollingBarrels.push({ mesh: barrel, x: houseX + 8, minX: x, maxX: houseX + 12, vx: -4.8 });
+    }
+  }
+  else if (stg.theme === 'DESERT') {
+    buildSegmentedGroundWithPits(totalLen, matDesertSand, 32, 6.0);
+    for (let x = 15; x < totalLen - 20; x += 22) {
+      const camel = new THREE.Mesh(new THREE.SphereGeometry(0.85, 16, 16), new THREE.MeshStandardMaterial({ color: 0xc68642 }));
+      camel.scale.set(1.5, 0.9, 0.8);
+      camel.position.set(x, 0.9, 0);
+      stageRoot.add(camel);
+      springBouncers.push({ mesh: camel, x, yTop: 1.7 });
+
+      const rockLedge = new THREE.Mesh(new THREE.BoxGeometry(7.0, 0.6, 3.4), matDesertSand);
+      rockLedge.position.set(x + 9, 3.8, 0);
+      stageRoot.add(rockLedge);
+      solidBlocks.push({ xMin: x + 5.5, xMax: x + 12.5, yMin: 3.5, yMax: 4.1, oneWayTop: true, active: true });
+
+      spawnEnemyUnit(x + 4, 0, x + 1, x + 8, 'NATURAL_SNAKE', false);
+      spawnEnemyUnit(x + 9, 4.1, x + 6, x + 12, 'FEMALE_WARRIOR', false);
+    }
+  }
+  else if (stg.theme === 'ROOFTOPS') {
+    const startRoof = new THREE.Mesh(new THREE.BoxGeometry(16, 4, 8), matSandstone);
+    startRoof.position.set(0, -2, 0);
+    stageRoot.add(startRoof);
+    floorDeckList.push({ xStart: -8, xEnd: 8, yTop: 0 });
+
+    for (let rx = 14; rx < totalLen - 18; rx += 18) {
+      const ry = (rx % 36 === 14) ? 1.5 : 3.6;
+      const rw = 10.5;
+      const bldg = new THREE.Mesh(new THREE.BoxGeometry(rw, 8, 4.2), matSandstone);
+      bldg.position.set(rx, ry - 4, 0);
+      stageRoot.add(bldg);
+      floorDeckList.push({ xStart: rx - rw / 2, xEnd: rx + rw / 2, yTop: ry });
+
+      spawnEnemyUnit(rx, ry, rx - 4, rx + 4, (rx % 36 === 14) ? 'FEMALE_WARRIOR' : 'GUARD', false);
+
+      if (rx % 36 !== 14) {
+        const x1 = rx + rw / 2, y1 = ry + 1.5, x2 = rx + 13, y2 = 2.0;
+        const zipMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(x1, y1, 0), new THREE.Vector3(x2, y2, 0)), 10, 0.04, 8, false), new THREE.MeshStandardMaterial({ color: 0xf5deb3 }));
+        stageRoot.add(zipMesh);
+        ziplines.push({ x1, y1, x2, y2 });
+      }
+    }
+    const endRoof = new THREE.Mesh(new THREE.BoxGeometry(26, 4, 8), matSandstone);
+    endRoof.position.set(totalLen - 5, -2, 0);
+    stageRoot.add(endRoof);
+    floorDeckList.push({ xStart: totalLen - 18, xEnd: totalLen + 8, yTop: 0 });
+  }
+  else if (stg.theme === 'DUNGEON') {
+    buildSegmentedGroundWithPits(totalLen, matDungeon, 26, 6.2);
+    for (let x = 16; x < totalLen - 22; x += 20) {
+      const plat = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.5, 3.4), matDungeon);
+      plat.position.set(x, 3.2, 0);
+      stageRoot.add(plat);
+      movingPlatforms.push({ mesh: plat, baseX: x, baseY: 3.2, x, yTop: 3.45, w: 5.5, rangeX: 2.8, rangeY: 0, phase: x });
+      spawnEnemyUnit(x - 4, 0, x - 8, x - 1, 'GUARD', false);
+      spawnEnemyUnit(x + 5, 0, x + 2, x + 9, 'FEMALE_WARRIOR', false);
+    }
+  }
+  else if (stg.theme === 'CAVE_ENTRANCE') {
+    buildSegmentedGroundWithPits(totalLen, matDungeon, 24, 6.8);
+    const tigerGate = new THREE.Mesh(new THREE.SphereGeometry(3.8, 20, 20), new THREE.MeshStandardMaterial({ color: 0xd49b00 }));
+    tigerGate.position.set(4, 3.8, -3.5);
+    stageRoot.add(tigerGate);
+
+    for (let lx = 18; lx < totalLen - 20; lx += 11) {
+      const flipStone = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.5, 3.2), new THREE.MeshStandardMaterial({ color: 0x8e44ad }));
+      flipStone.position.set(lx, 3.2, 0);
+      stageRoot.add(flipStone);
+      const sb = { xMin: lx - 1.9, xMax: lx + 1.9, yMin: 2.95, yMax: 3.45, oneWayTop: true, active: true };
+      solidBlocks.push(sb);
+      flippingStones.push({ mesh: flipStone, sb, phase: lx });
+      if (lx % 22 === 18) spawnEnemyUnit(lx, 0, lx - 3, lx + 3, 'NATURAL_SNAKE', false);
+    }
+  }
+  else if (stg.theme === 'WATER_LAGOON') {
+    const startBank = new THREE.Mesh(new THREE.BoxGeometry(20, 4, 9), matDungeon);
+    startBank.position.set(0, -2, 0);
+    stageRoot.add(startBank);
+    floorDeckList.push({ xStart: -10, xEnd: 10, yTop: 0 });
+
+    const waterSea = new THREE.Mesh(
+      new THREE.BoxGeometry(totalLen, 3.0, 12),
+      new THREE.MeshStandardMaterial({ color: 0x00a8ff, emissive: 0x004488, transparent: true, opacity: 0.78 })
+    );
+    waterSea.position.set(totalLen / 2, -1.6, 0);
+    stageRoot.add(waterSea);
+
+    for (let lx = 15; lx < totalLen - 18; lx += 10.5) {
+      const logMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 5.4, 16), new THREE.MeshStandardMaterial({ color: 0x6e4720 }));
+      logMesh.rotation.z = Math.PI / 2;
+      logMesh.position.set(lx, 0.9, 0);
+      stageRoot.add(logMesh);
+      movingPlatforms.push({ mesh: logMesh, baseX: lx, baseY: 0.9, x: lx, yTop: 1.5, w: 5.4, rangeX: 1.6, rangeY: 0.45, phase: lx });
+
+      if (lx % 21 === 15) {
+        const rockIsland = new THREE.Mesh(new THREE.BoxGeometry(5.0, 3.5, 4.0), matDungeon);
+        rockIsland.position.set(lx + 5.2, 0.5, 0);
+        stageRoot.add(rockIsland);
+        solidBlocks.push({ xMin: lx + 2.7, xMax: lx + 7.7, yMin: -1, yMax: 2.25, oneWayTop: true, active: true });
+        spawnEnemyUnit(lx + 5.2, 2.25, lx + 3.0, lx + 7.4, 'FEMALE_WARRIOR', false);
+      }
+    }
+
+    const endBank = new THREE.Mesh(new THREE.BoxGeometry(28, 4, 9), matDungeon);
+    endBank.position.set(totalLen - 4, -2, 0);
+    stageRoot.add(endBank);
+    floorDeckList.push({ xStart: totalLen - 18, xEnd: totalLen + 10, yTop: 0 });
+  }
+  else if (stg.theme === 'GOLD_TREASURE') {
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.75, roughness: 0.25 });
+    buildSegmentedGroundWithPits(totalLen, goldMat, 30, 5.8);
+    for (let gx = 16; gx < totalLen - 22; gx += 20) {
+      const mound = new THREE.Mesh(new THREE.SphereGeometry(2.8, 18, 16), goldMat);
+      mound.scale.set(1.6, 0.9, 1.0);
+      mound.position.set(gx, 0.5, -2.5);
+      stageRoot.add(mound);
+
+      const terrace = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.6, 3.6), goldMat);
+      terrace.position.set(gx + 6, 3.5, 0);
+      stageRoot.add(terrace);
+      solidBlocks.push({ xMin: gx + 2.25, xMax: gx + 9.75, yMin: 3.2, yMax: 3.8, oneWayTop: true, active: true });
+
+      spawnEnemyUnit(gx, 0, gx - 4, gx + 4, 'NATURAL_SNAKE', false);
+      spawnEnemyUnit(gx + 6, 3.8, gx + 3, gx + 9, 'GUARD', false);
+    }
+  }
+  else if (stg.theme === 'LAVA_GEYSERS') {
+    const lavaRockMat = new THREE.MeshStandardMaterial({ color: 0x4a0e0e, roughness: 0.7 });
+    buildSegmentedGroundWithPits(totalLen, lavaRockMat, 22, 7.5);
+    const lavaPool = new THREE.Mesh(new THREE.BoxGeometry(totalLen + 40, 2, 12), new THREE.MeshStandardMaterial({ color: 0xff3300, emissive: 0xff1100 }));
+    lavaPool.position.set(totalLen / 2, -3.2, 0);
+    stageRoot.add(lavaPool);
+
+    for (let gx = 16; gx < totalLen - 20; gx += 14) {
+      const gPlat = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.6, 3.2), lavaRockMat);
+      gPlat.position.set(gx, 2.5, 0);
+      stageRoot.add(gPlat);
+      movingPlatforms.push({ mesh: gPlat, baseX: gx, baseY: 2.5, x: gx, yTop: 2.8, w: 4.4, rangeX: 0, rangeY: 2.0, phase: gx });
+      if (gx % 28 === 16) spawnEnemyUnit(gx, 0, gx - 3, gx + 3, 'GUARD', false);
+    }
+  }
+  else if (stg.theme === 'CARPET_VOLCANO' || stg.theme === 'CARPET_NIGHT') {
+    const isVolcano = (stg.theme === 'CARPET_VOLCANO');
+    const sea = new THREE.Mesh(
+      new THREE.BoxGeometry(totalLen + 80, 3, 16),
+      new THREE.MeshStandardMaterial({ color: isVolcano ? 0xff3300 : 0x0b0726, emissive: isVolcano ? 0xff1100 : 0x05021a })
+    );
+    sea.position.set(totalLen / 2, -1.8, 0);
+    stageRoot.add(sea);
+
+    if (isVolcano) {
+      lavaChaserX = -13;
+      lavaWallMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.8, 5.8, 16, 20),
+        new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff2200, emissiveIntensity: 1.5 })
+      );
+      lavaWallMesh.rotation.x = Math.PI / 2;
+      lavaWallMesh.position.set(lavaChaserX, 5.5, 0);
+      stageRoot.add(lavaWallMesh);
+    }
+
+    for (let bx = 22; bx < totalLen - 16; bx += 13) {
+      const py = (Math.floor(bx / 13) % 2 === 0) ? 6.4 : 2.3;
+      const obstacle = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5, 1), new THREE.MeshStandardMaterial({ color: isVolcano ? 0x4a0e0e : 0x2c3e50 }));
+      obstacle.position.set(bx, py, 0);
+      stageRoot.add(obstacle);
+      solidBlocks.push({ xMin: bx - 1.2, xMax: bx + 1.2, yMin: py - 1.2, yMax: py + 1.2, oneWayTop: false, active: true });
+
+      spawnEnemyUnit(bx + 6, 4.2, bx + 2, bx + 10, 'LAVA_BAT', false);
+    }
+  }
+  else if (stg.theme === 'LAMP_HANDS' || stg.theme === 'LAMP_TONGUES') {
+    const startCloud = new THREE.Mesh(new THREE.BoxGeometry(16, 1.2, 4.5), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    startCloud.position.set(0, 0.6, 0);
+    stageRoot.add(startCloud);
+    floorDeckList.push({ xStart: -8, xEnd: 8, yTop: 1.2 });
+
+    for (let cx = 13; cx < totalLen - 12; cx += 10.0) {
+      const idxStep = Math.round((cx - 13) / 10.0);
+      const cy = 1.4 + (idxStep % 3) * 1.45;
+      const platW = 6.2;
+
+      const platMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(platW, 0.6, 3.6),
+        new THREE.MeshStandardMaterial({ color: stg.theme === 'LAMP_HANDS' ? 0x38a8ff : 0xff55a3 })
+      );
+      platMesh.position.set(cx, cy, 0);
+      stageRoot.add(platMesh);
+      floorDeckList.push({ xStart: cx - platW / 2, xEnd: cx + platW / 2, yTop: cy + 0.3 });
+
+      const balloon = new THREE.Mesh(new THREE.SphereGeometry(0.65, 16, 16), new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x004488 }));
+      balloon.position.set(cx + 4.8, cy + 1.8, 0);
+      stageRoot.add(balloon);
+      springBouncers.push({ mesh: balloon, x: cx + 4.8, yTop: cy + 2.3 });
+
+      if (idxStep % 2 === 0) {
+        spawnEnemyUnit(cx, cy + 0.3, cx - 2.4, cx + 2.4, 'FEMALE_WARRIOR', false);
+      }
+    }
+
+    const endCloud = new THREE.Mesh(new THREE.BoxGeometry(22, 1.2, 4.5), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    endCloud.position.set(totalLen - 2, 1.2, 0);
+    stageRoot.add(endCloud);
+    floorDeckList.push({ xStart: totalLen - 13, xEnd: totalLen + 9, yTop: 1.8 });
+  }
+  else if (stg.theme === 'PYRAMID_SANDS') {
+    buildSegmentedGroundWithPits(totalLen, matPyramid, 36, 5.5);
+    for (let px = 16; px < totalLen - 32; px += 40) {
+      for (let s = 0; s < 4; s++) {
+        const sx = px + s * 2.2, h = (s + 1) * 0.9;
+        const step = new THREE.Mesh(new THREE.BoxGeometry(2.2, h, 4.0), matPyramid);
+        step.position.set(sx, h / 2, 0);
+        stageRoot.add(step);
+        solidBlocks.push({ xMin: sx - 1.1, xMax: sx + 1.1, yMin: 0, yMax: h, oneWayTop: true, active: true });
+      }
+      const apexX = px + 4 * 2.2 + 2.5, apexH = 4.5;
+      const apexBlock = new THREE.Mesh(new THREE.BoxGeometry(6.0, apexH, 4.2), matPyramid);
+      apexBlock.position.set(apexX, apexH / 2, 0);
+      stageRoot.add(apexBlock);
+      solidBlocks.push({ xMin: apexX - 3.0, xMax: apexX + 3.0, yMin: 0, yMax: apexH, oneWayTop: true, active: true });
+      addChest(apexX, apexH);
+      spawnEnemyUnit(apexX, apexH, apexX - 2.4, apexX + 2.4, 'GUARD', false);
+      spawnEnemyUnit(px - 3, 0, px - 6, px - 1, 'NATURAL_SNAKE', false);
+
+      const sandX = apexX + 9.5;
+      const sandFall = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.7, 8.5, 16), new THREE.MeshStandardMaterial({ color: 0xf4c430, transparent: true, opacity: 0.75 }));
+      sandFall.position.set(sandX, 4.2, 0);
+      stageRoot.add(sandFall);
+      sandWaterfalls.push({ xMin: sandX - 1.4, xMax: sandX + 1.4 });
+    }
+  }
+  else if (stg.theme === 'SULTAN_GARDENS') {
+    buildSegmentedGroundWithPits(totalLen, matPalaceMarble, 30, 5.5);
+    for (let gx = 15; gx < totalLen - 22; gx += 22) {
+      const flamingo = new THREE.Mesh(new THREE.SphereGeometry(0.65, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff66b2 }));
+      flamingo.scale.set(1.4, 0.85, 0.85);
+      flamingo.position.set(gx, 1.6, 0);
+      stageRoot.add(flamingo);
+      springBouncers.push({ mesh: flamingo, x: gx, yTop: 2.1 });
+
+      const balcony = new THREE.Mesh(new THREE.BoxGeometry(8.0, 0.55, 3.8), matPalaceMarble);
+      balcony.position.set(gx + 9, 4.0, 0);
+      stageRoot.add(balcony);
+      solidBlocks.push({ xMin: gx + 5, xMax: gx + 13, yMin: 3.7, yMax: 4.28, oneWayTop: true, active: true });
+      spawnEnemyUnit(gx + 9, 4.28, gx + 5.5, gx + 12.5, 'FEMALE_WARRIOR', false);
+      spawnEnemyUnit(gx + 3, 0, gx, gx + 7, 'GUARD', false);
+    }
+  }
+  else if (stg.theme === 'JAFAR_FINAL') {
+    buildSegmentedGroundWithPits(totalLen, matJafarBrick, 28, 6.2);
+    for (let tx = 18; tx < totalLen - 32; tx += 28) {
+      const towerWall = new THREE.Mesh(new THREE.BoxGeometry(11, 10, 1.5), matJafarBrick);
+      towerWall.position.set(tx + 4, 5.0, -1.8);
+      stageRoot.add(towerWall);
+
+      [2.2, 4.6, 7.0].forEach((sy, si) => {
+        const swordX = tx + si * 2.6;
+        const swordPlat = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.22, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x0055aa, metalness: 0.95 }));
+        swordPlat.position.set(swordX, sy, 0);
+        stageRoot.add(swordPlat);
+        springBouncers.push({ mesh: swordPlat, x: swordX, yTop: sy + 0.15 });
+      });
+
+      const topDeck = new THREE.Mesh(new THREE.BoxGeometry(8.0, 0.6, 3.8), matJafarBrick);
+      topDeck.position.set(tx + 8.5, 7.6, 0);
+      stageRoot.add(topDeck);
+      solidBlocks.push({ xMin: tx + 4.5, xMax: tx + 12.5, yMin: 7.3, yMax: 7.9, oneWayTop: true, active: true });
+      addChest(tx + 8.5, 7.9);
+      spawnEnemyUnit(tx + 8.5, 7.9, tx + 5.0, tx + 12.0, 'FEMALE_WARRIOR', false);
+      spawnEnemyUnit(tx - 2, 0, tx - 5, tx + 2, 'NATURAL_SNAKE', false);
+    }
+  }
+
+  for (let cx = 12; cx < totalLen - 18; cx += 11.5) {
+    const cy = isCarpetFlight ? (2.6 + (cx % 3) * 1.3) : 1.4;
+    if (Math.round(cx) % 33 === 0) spawnCollectibleItem(cx, cy + 0.5, 'GOLDEN_APPLE_PACK');
+    else if (Math.round(cx) % 22 === 0) spawnCollectibleItem(cx, cy, 'RED_RUBY');
+    else spawnCollectibleItem(cx, cy, 'APPLE');
+  }
+
+  const exitY = isCarpetFlight ? 2.2 : ((stg.theme === 'LAMP_HANDS' || stg.theme === 'LAMP_TONGUES') ? 1.8 : 0);
+  const podium = new THREE.Mesh(new THREE.BoxGeometry(9.0, 0.6, 4.8), matCarpet);
+  podium.position.set(totalLen, exitY - 0.3, 0);
+  const goldArch = new THREE.Mesh(new THREE.TorusGeometry(3.8, 0.28, 14, 32, Math.PI), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9 }));
+  goldArch.position.set(totalLen, exitY, 0);
+  stageRoot.add(podium, goldArch);
+  stageExitSign = { x: totalLen, y: exitY, reached: false };
+
+  if (stg.boss) {
+    spawnEnemyUnit(totalLen - 10, exitY, totalLen - 20, totalLen - 3, stg.boss, true);
+  }
+
+  player.x = 0;
+  player.y = isCarpetFlight ? 3.4 : ((stg.theme === 'LAMP_HANDS' || stg.theme === 'LAMP_TONGUES') ? 1.2 : 0);
+  player.vx = 0; player.vy = 0;
+  player.subHp = 100;
+  player.onGround = !isCarpetFlight;
+  player.onLadder = false;
+  player.celebrating = false;
+  player.celebrateTimer = 0;
+  player.flipAngle = 0;
+  companions.abuX = -1.5; companions.abuY = player.y;
+  companions.genieX = -1.2; companions.genieY = player.y + 1.8;
+  cameraFocusX = 2.5;
+  smoothLookAheadX = 1.2;
+  smoothLookTargetX = 3.5;
+
+  document.getElementById('stageSelect').value = idx;
+  if (stg.bossName) document.getElementById('bossTitleTxt').innerText = stg.bossName;
+  refreshHUD();
+};
+
+// ============================================================================
+// 7. محرك قوائم التشغيل الأونلاين المطور (بدون قيود CORS + قارئ M3U/PLS + دعم YouTube)
+// ============================================================================
+const MJ_HIT_SONGS = [
+  { title: "Billie Jean (Studio Synth)", bpm: 117, bass: [42, 49, 45, 42, 40, 42, 40, 37, 42, 49, 45, 42, 40, 42, 40, 37], lead: [null, 73, 71, 69, 68, 66, null, 68, 69, 68, 66, 64, 66, null, null, null] },
+  { title: "Smooth Criminal (Groove)", bpm: 120, bass: [45, 45, 43, 45, null, 47, 47, 45, 47, null, 48, 48, 47, 48, null, 47], lead: [69, 69, 67, 69, null, 71, 71, 69, 71, null, 72, 72, 71, 72, null, 71] },
+  { title: "Beat It (Rock Riff)", bpm: 136, bass: [40, null, 43, null, 47, null, 55, null, 52, null, 54, 52, 50, null, 50, null], lead: [64, null, 67, null, 71, null, 79, null, 76, null, 78, 76, 74, null, 74, null] },
+  { title: "Thriller (Funk Bass)", bpm: 118, bass: [37, null, 37, 40, 42, null, 44, null, 42, null, 40, 37, 35, null, 37, null], lead: [73, 75, 76, null, 73, 71, 68, null, 66, 68, 71, 68, 66, 64, 61, null] },
+  { title: "Bad (Funk Organ)", bpm: 114, bass: [45, 45, 48, 45, 50, 48, 45, 43, 45, 45, 48, 45, 50, 48, 45, 43], lead: [null, 76, 74, 72, 69, null, 72, 69, null, 76, 74, 72, 74, 76, 72, null] },
+  { title: "Remember the Time", bpm: 108, bass: [41, 41, 44, 46, 48, 46, 44, 41, 39, 39, 41, 44, 46, 44, 41, 39], lead: [72, 70, 68, 65, null, 68, 70, 72, 70, 68, 67, 63, null, 65, 67, 68] }
+];
+
+class PlaylistAudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.isPlaying = false;
+    this.bgmMuted = false;
+    this.sfxMuted = false;
+    this.step = 0;
+    this.nextTime = 0;
+
+    this.playlist = MJ_HIT_SONGS.map((s, idx) => ({
+      id: idx + 1,
+      title: s.title,
+      type: 'SYNTH',
+      synthIdx: idx,
+      checked: true
+    }));
+    this.currentQueuePos = 0;
+
+    // إنشاء عنصر الصوت بدون crossOrigin='anonymous' لكي لا ترفض السيرفرات الخارجية ومحطات الراديو التشغيل!
+    this.htmlAudio = new Audio();
+    this.htmlAudio.preload = "auto";
+
+    this.htmlAudio.addEventListener('ended', () => {
+      this.playNextInQueue();
+    });
+    this.htmlAudio.addEventListener('error', () => {
+      spawnPopup("⚠️ الرابط الصوتي غير متاح حالياً، جاري الانتقال للتالي...", window.innerWidth * 0.5, 90, "#ffaa00");
+      setTimeout(() => this.playNextInQueue(), 800);
+    });
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+    }
+    if (this.ctx.state === 'suspended' && !isGamePaused) this.ctx.resume();
+  }
+
+  getCheckedTracks() {
+    const list = this.playlist.filter(t => t.checked);
+    return list.length > 0 ? list : [this.playlist[0]];
+  }
+
+  getCurrentActiveItem() {
+    const activeList = this.getCheckedTracks();
+    this.currentQueuePos = this.currentQueuePos % activeList.length;
+    return activeList[this.currentQueuePos];
+  }
+
+  updateNowPlayingUI() {
+    const item = this.getCurrentActiveItem();
+    document.getElementById('nowPlayingTicker').innerText = `🎵 ${item.title}`;
+  }
+
+  playNextInQueue() {
+    this.init();
+    const activeList = this.getCheckedTracks();
+    this.currentQueuePos = (this.currentQueuePos + 1) % activeList.length;
+    this.step = 0;
+    this.activateCurrentTrack();
+  }
+
+  activateCurrentTrack() {
+    const item = this.getCurrentActiveItem();
+    this.updateNowPlayingUI();
+    const embedWidget = document.getElementById('onlineEmbedWidget');
+    const embedFrame = document.getElementById('onlineEmbedFrame');
+
+    if (item.type === 'YOUTUBE') {
+      this.htmlAudio.pause();
+      embedWidget.style.display = this.bgmMuted ? 'none' : 'block';
+      embedFrame.src = item.embedUrl;
+    } else if (item.type === 'URL' || item.type === 'FILE') {
+      embedWidget.style.display = 'none';
+      embedFrame.src = '';
+      this.htmlAudio.src = item.url;
+      this.htmlAudio.muted = this.bgmMuted;
+      this.htmlAudio.play().catch(() => {
+        spawnPopup("▶️ اضغط في أي مكان لتفعيل البث الصوتي الأونلاين", window.innerWidth * 0.5, 90, "#00ffff");
+      });
+    } else {
+      embedWidget.style.display = 'none';
+      embedFrame.src = '';
+      this.htmlAudio.pause();
+    }
+    renderPlaylistUI();
+  }
+
+  toggleBGM() {
+    this.bgmMuted = !this.bgmMuted;
+    this.htmlAudio.muted = this.bgmMuted;
+    const item = this.getCurrentActiveItem();
+    if (item && item.type === 'YOUTUBE') {
+      document.getElementById('onlineEmbedWidget').style.display = this.bgmMuted ? 'none' : 'block';
+    }
+    const btn = document.getElementById('bgmToggleBtn');
+    btn.className = this.bgmMuted ? "edge-btn muted-toggle" : "edge-btn active-toggle";
+  }
+
+  toggleSFX() {
+    this.sfxMuted = !this.sfxMuted;
+    const btn = document.getElementById('sfxToggleBtn');
+    btn.className = this.sfxMuted ? "edge-btn muted-toggle" : "edge-btn active-toggle";
+  }
+
+  start() {
+    this.init();
+    if (this.isPlaying) return;
+    this.isPlaying = true;
+    this.nextTime = this.ctx.currentTime + 0.05;
+    this.activateCurrentTrack();
+    this.loop();
+  }
+
+  midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+  loop() {
+    if (!isGamePaused && this.ctx) {
+      const item = this.getCurrentActiveItem();
+      if (item.type === 'SYNTH') {
+        const song = MJ_HIT_SONGS[item.synthIdx % MJ_HIT_SONGS.length];
+        const stepDur = (60 / song.bpm) * 0.25;
+        while (this.nextTime < this.ctx.currentTime + 0.14) {
+          if (!this.bgmMuted) {
+            const s = this.step % 16;
+            if (s % 4 === 0) this.playKick(this.nextTime);
+            if (s % 4 === 2) this.playSnare(this.nextTime);
+            if (song.bass[s]) this.playFMBass(this.nextTime, this.midiToFreq(song.bass[s]), stepDur * 1.8);
+            if (song.lead[s]) this.playLead(this.nextTime, this.midiToFreq(song.lead[s]), stepDur * 1.8);
+          }
+          this.nextTime += stepDur;
+          this.step++;
+          if (this.step >= 96) {
+            this.step = 0;
+            const activeList = this.getCheckedTracks();
+            if (activeList.length > 1) {
+              this.playNextInQueue();
+              break;
+            }
+          }
+        }
+      } else {
+        this.nextTime = this.ctx.currentTime + 0.05;
+      }
+    } else if (this.ctx) {
+      this.nextTime = this.ctx.currentTime + 0.05;
+    }
+    if (this.isPlaying) setTimeout(() => this.loop(), 25);
+  }
+
+  playFMBass(t, freq, dur) {
+    const c = this.ctx.createOscillator(), m = this.ctx.createOscillator(), mg = this.ctx.createGain(), g = this.ctx.createGain();
+    c.type = 'triangle'; m.type = 'sine';
+    c.frequency.setValueAtTime(freq, t); m.frequency.setValueAtTime(freq * 2, t);
+    mg.gain.setValueAtTime(freq * 2.2, t); mg.gain.exponentialRampToValueAtTime(10, t + dur);
+    g.gain.setValueAtTime(0.24, t); g.gain.exponentialRampToValueAtTime(0.002, t + dur);
+    m.connect(mg); mg.connect(c.frequency); c.connect(g); g.connect(this.ctx.destination);
+    c.start(t); m.start(t); c.stop(t + dur); m.stop(t + dur);
+  }
+
+  playLead(t, freq, dur) {
+    const o = this.ctx.createOscillator(), flt = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(freq, t);
+    flt.type = 'lowpass'; flt.frequency.setValueAtTime(2200, t);
+    g.gain.setValueAtTime(0.10, t); g.gain.exponentialRampToValueAtTime(0.002, t + dur);
+    o.connect(flt); flt.connect(g); g.connect(this.ctx.destination);
+    o.start(t); o.stop(t + dur);
+  }
+
+  playKick(t) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.frequency.setValueAtTime(135, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.1);
+    g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t); o.stop(t + 0.19);
+  }
+
+  playSnare(t) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.09);
+    g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t); o.stop(t + 0.11);
+  }
+
+  playSFX(type) {
+    if (isGamePaused || this.sfxMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.connect(g); g.connect(this.ctx.destination);
+    if (type === 'JUMP' || type === 'BOUNCE') {
+      o.type = 'sine'; o.frequency.setValueAtTime(280, now); o.frequency.exponentialRampToValueAtTime(580, now + 0.14);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.004, now + 0.15);
+      o.start(now); o.stop(now + 0.16);
+    } else if (type === 'SWORD_SLASH') {
+      o.type = 'triangle'; o.frequency.setValueAtTime(820, now); o.frequency.exponentialRampToValueAtTime(180, now + 0.13);
+      g.gain.setValueAtTime(0.24, now); g.gain.exponentialRampToValueAtTime(0.004, now + 0.14);
+      o.start(now); o.stop(now + 0.15);
+    } else if (type === 'POWERUP' || type === 'HEEHEE') {
+      o.type = 'triangle'; o.frequency.setValueAtTime(587, now); o.frequency.setValueAtTime(880, now + 0.07);
+      g.gain.setValueAtTime(0.22, now); g.gain.exponentialRampToValueAtTime(0.004, now + 0.22);
+      o.start(now); o.stop(now + 0.23);
+    } else if (type === 'HURT') {
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(180, now); o.frequency.linearRampToValueAtTime(65, now + 0.2);
+      g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.004, now + 0.21);
+      o.start(now); o.stop(now + 0.22);
+    }
+  }
+}
+const studioAudio = new PlaylistAudioEngine();
+
+// محلل ذكي لقوائم التشغيل الأونلاين (.m3u / .m3u8 / .pls / YouTube / Direct Audio Streams)
+function parseAndAddPlaylistText(textContent, sourceLabel) {
+  const lines = textContent.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  let nextTitle = null;
+  let addedCount = 0;
+  let firstIdx = studioAudio.playlist.length;
+
+  lines.forEach(line => {
+    if (line.startsWith('#EXTINF:')) {
+      const commaIdx = line.indexOf(',');
+      if (commaIdx !== -1) nextTitle = line.substring(commaIdx + 1).trim();
+    } else if (line.startsWith('Title') && line.includes('=')) {
+      nextTitle = line.split('=')[1].trim();
+    } else if (line.startsWith('File') && line.includes('=')) {
+      const url = line.substring(line.indexOf('=') + 1).trim();
+      if (url.startsWith('http')) {
+        studioAudio.playlist.push({
+          id: Date.now() + Math.random(),
+          title: nextTitle || `${sourceLabel} #${addedCount + 1}`,
+          type: 'URL', url, checked: true
+        });
+        nextTitle = null; addedCount++;
+      }
+    } else if (!line.startsWith('#') && (line.startsWith('http://') || line.startsWith('https://'))) {
+      studioAudio.playlist.push({
+        id: Date.now() + Math.random(),
+        title: nextTitle || `${sourceLabel} #${addedCount + 1}`,
+        type: 'URL', url: line, checked: true
+      });
+      nextTitle = null; addedCount++;
+    }
+  });
+
+  if (addedCount > 0) {
+    window.playSpecificPlaylistItem(firstIdx);
+    spawnPopup(`📻 تم استخراج وتشغيل ${addedCount} مقاطع من القائمة!`, window.innerWidth * 0.5, 90, "#00ffff");
+  }
+}
+
+function extractYouTubeEmbedUrl(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+      const listId = u.searchParams.get('list');
+      const vId = u.searchParams.get('v') || (u.hostname.includes('youtu.be') ? u.pathname.slice(1) : null);
+      if (listId) return `https://www.youtube.com/embed/videoseries?list=${listId}&autoplay=1&loop=1`;
+      if (vId) return `https://www.youtube.com/embed/${vId}?autoplay=1&loop=1&playlist=${vId}`;
+    }
+  } catch (e) {}
+  return null;
+}
+
+window.addOnlineUrlToPlaylist = async function() {
+  const titleIn = document.getElementById('onlineTrackTitle');
+  const urlIn = document.getElementById('onlineTrackUrl');
+  const rawUrl = urlIn.value.trim();
+  if (!rawUrl) return;
+  const customTitle = titleIn.value.trim();
+
+  // 1) فحص إذا كان الرابط لـ YouTube Video أو YouTube Playlist
+  const ytEmbed = extractYouTubeEmbedUrl(rawUrl);
+  if (ytEmbed) {
+    const newIdx = studioAudio.playlist.length;
+    studioAudio.playlist.push({
+      id: Date.now() + Math.random(),
+      title: customTitle || `YouTube Stream #${newIdx + 1}`,
+      type: 'YOUTUBE',
+      embedUrl: ytEmbed,
+      checked: true
+    });
+    titleIn.value = ''; urlIn.value = '';
+    window.playSpecificPlaylistItem(newIdx);
+    spawnPopup("▶️ تم تشغيل قائمة/مقطع YouTube في الخلفية!", window.innerWidth * 0.5, 90, "#00ffff");
+    return;
+  }
+
+  // 2) فحص إذا كان الرابط ملف قائمة تشغيل أونلاين (.m3u / .m3u8 / .pls)
+  if (rawUrl.toLowerCase().endsWith('.m3u') || rawUrl.toLowerCase().endsWith('.m3u8') || rawUrl.toLowerCase().endsWith('.pls')) {
+    try {
+      const resp = await fetch(rawUrl);
+      const txt = await resp.text();
+      titleIn.value = ''; urlIn.value = '';
+      parseAndAddPlaylistText(txt, customTitle || "بث M3U");
+      return;
+    } catch (err) {
+      // في حال منع الـ fetch، نضيفه كرابط صوتي مباشر
+    }
+  }
+
+  // 3) رابط صوتي مباشر (MP3 / OGG / Web Radio Stream)
+  const newIdx = studioAudio.playlist.length;
+  studioAudio.playlist.push({
+    id: Date.now() + Math.random(),
+    title: customTitle || `بث أونلاين #${newIdx + 1}`,
+    type: 'URL',
+    url: rawUrl,
+    checked: true
+  });
+  titleIn.value = ''; urlIn.value = '';
+  window.playSpecificPlaylistItem(newIdx);
+  spawnPopup(`🌐 تم تشغيل البث الأونلاين!`, window.innerWidth * 0.5, 90, "#00ffff");
+};
+
+window.addSampleOnlineRadio = function() {
+  const firstIdx = studioAudio.playlist.length;
+  const streams = [
+    { title: "80s Pop & Synthwave Live Radio", url: "https://ice1.somafm.com/u80s-128-mp3" },
+    { title: "Funk & Groove Online Stream", url: "https://ice1.somafm.com/seventies-128-mp3" }
+  ];
+  streams.forEach(st => {
+    studioAudio.playlist.push({
+      id: Date.now() + Math.random(),
+      title: st.title,
+      type: 'URL',
+      url: st.url,
+      checked: true
+    });
+  });
+  window.playSpecificPlaylistItem(firstIdx);
+  spawnPopup("📻 تمت إضافة وتشغيل محطات البث الأونلاين!", window.innerWidth * 0.5, 90, "#ffd700");
+};
+
+function renderPlaylistUI() {
+  const container = document.getElementById('playlistContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  const currentActive = studioAudio.getCurrentActiveItem();
+
+  studioAudio.playlist.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'playlist-item';
+    const isNow = (currentActive && currentActive.id === item.id);
+    row.innerHTML = `
+      <label style="display:flex; align-items:center; cursor:pointer; flex:1;">
+        <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="togglePlaylistItem(${idx}, this.checked)">
+        <span style="color:${isNow ? '#00ffff' : '#fff'}; font-weight:${isNow ? '900' : '700'};">
+          ${isNow ? '▶️ ' : ''}${item.title} <small style="color:#ffd700;">[${item.type}]</small>
+        </span>
+      </label>
+      <button class="edge-btn" onclick="playSpecificPlaylistItem(${idx})">تشغيل الآن</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+window.openPlaylistModal = function() {
+  renderPlaylistUI();
+  document.getElementById('playlistModal').style.display = 'flex';
+};
+window.closePlaylistModal = function() {
+  document.getElementById('playlistModal').style.display = 'none';
+};
+window.togglePlaylistItem = function(idx, val) {
+  studioAudio.playlist[idx].checked = val;
+  renderPlaylistUI();
+};
+window.selectAllPlaylist = function(val) {
+  studioAudio.playlist.forEach(t => t.checked = val);
+  renderPlaylistUI();
+};
+window.playSpecificPlaylistItem = function(idx) {
+  studioAudio.init();
+  studioAudio.playlist[idx].checked = true;
+  const checkedList = studioAudio.getCheckedTracks();
+  studioAudio.currentQueuePos = checkedList.indexOf(studioAudio.playlist[idx]);
+  studioAudio.step = 0;
+  studioAudio.isPlaying = true;
+  studioAudio.activateCurrentTrack();
+};
+
+document.getElementById('multiMp3Upload').addEventListener('change', (e) => {
+  if (e.target.files && e.target.files.length > 0) {
+    let firstAddedIdx = studioAudio.playlist.length;
+    Array.from(e.target.files).forEach((file) => {
+      const fname = file.name.toLowerCase();
+      if (fname.endsWith('.m3u') || fname.endsWith('.m3u8') || fname.endsWith('.pls')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => parseAndAddPlaylistText(ev.target.result, file.name);
+        reader.readAsText(file);
+      } else {
+        studioAudio.playlist.push({
+          id: Date.now() + Math.random(),
+          title: file.name,
+          type: 'FILE',
+          url: URL.createObjectURL(file),
+          checked: true
+        });
+      }
+    });
+    if (studioAudio.playlist.length > firstAddedIdx) {
+      window.playSpecificPlaylistItem(firstAddedIdx);
+      spawnPopup(`🎵 تمت إضافة ${e.target.files.length} ملفات للقائمة المتتابعة!`, window.innerWidth * 0.5, 90, "#ffd700");
+    }
+  }
+});
+
+window.goToNextStage = function() {
+  document.getElementById('mjCelebrationBanner').style.display = 'none';
+  buildStage((curStage + 1) % STORY_CHAPTERS.length);
+};
+
+// ============================================================================
+// 8. التحكم بالكيبورد + أزرار اللمس للأندرويد (Touch Gamepad)
+// ============================================================================
+const keys = {};
+let jumpKeyConsumed = false;
+
+const player = {
+  x: 0, y: 0, vx: 0, vy: 0, facing: 1,
+  onGround: true, onLadder: false, onZipline: null,
+  isParachuting: false, isCrouching: false,
+  isJumping: false, jumpHold: 0,
+  actionState: 'NONE', actionTimer: 0,
+  celebrating: false, celebrateTimer: 0,
+  strideCycle: 0, flipAngle: 0, squashY: 1.0, blinkTimer: 0,
+  hearts: 5, subHp: 100, lives: 4, apples: 15, goldenAppleShots: 0,
+  gems: 0, score: 1000, invuln: 0
+};
+
+function handleActionTrigger(code) {
+  if (!studioAudio.isPlaying) studioAudio.start();
+  const isCarpetFlight = (STORY_CHAPTERS[curStage].theme === 'CARPET_VOLCANO' || STORY_CHAPTERS[curStage].theme === 'CARPET_NIGHT');
+  const isInWater = (STORY_CHAPTERS[curStage].theme === 'WATER_LAGOON' && player.y < 0.2);
+
+  if (code === 'Space' && !jumpKeyConsumed && !isCarpetFlight) {
+    if (player.onGround || player.onLadder || player.onZipline || isInWater) {
+      jumpKeyConsumed = true;
+      player.vy = isInWater ? 11.2 : 10.5;
+      player.onGround = false;
+      player.onLadder = false;
+      player.onZipline = null;
+      player.isJumping = true;
+      player.jumpHold = 0.16;
+      player.squashY = 1.14;
+      studioAudio.playSFX('JUMP');
+      spawnParticles(player.x, player.y + 0.1, 0xffd700, 8);
+    }
+  }
+  if (code === 'KeyX') throwAppleWeapon();
+  if (code === 'KeyZ') performSwordStrike();
+  if (code === 'KeyC') { player.actionState = 'MOONWALK'; player.actionTimer = 0.5; player.vx = player.facing * 9.5; studioAudio.playSFX('HEEHEE'); }
+  if (code === 'KeyB') {
+    player.actionState = 'LEAN_45'; player.actionTimer = 0.6; studioAudio.playSFX('POWERUP');
+    for (const en of enemies) { if (Math.abs(en.x - player.x) < 5.5) { en.hp -= 35; en.stunTimer = 2.5; } }
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePauseGame(); return; }
+  if (isGamePaused || player.celebrating || document.getElementById('playlistModal').style.display === 'flex') return;
+  keys[e.code] = true;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (!e.repeat) handleActionTrigger(e.code);
+});
+
+window.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+  if (e.code === 'Space') {
+    jumpKeyConsumed = false;
+    player.isJumping = false;
+    if (player.vy > 4.0) player.vy *= 0.6;
+  }
+});
+
+// تفعيل أزرار اللمس تلقائياً على شاشات الأندرويد والموبايل
+let touchPadVisible = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if (touchPadVisible) document.getElementById('touchControlsOverlay').style.display = 'block';
+
+window.toggleTouchPad = function() {
+  touchPadVisible = !touchPadVisible;
+  document.getElementById('touchControlsOverlay').style.display = touchPadVisible ? 'block' : 'none';
+};
+
+document.querySelectorAll('.t-btn').forEach(btn => {
+  const keyCode = btn.getAttribute('data-key');
+  const startPress = (ev) => {
+    ev.preventDefault();
+    btn.classList.add('pressed');
+    keys[keyCode] = true;
+    handleActionTrigger(keyCode);
+  };
+  const endPress = (ev) => {
+    ev.preventDefault();
+    btn.classList.remove('pressed');
+    keys[keyCode] = false;
+    if (keyCode === 'Space') {
+      jumpKeyConsumed = false;
+      player.isJumping = false;
+      if (player.vy > 4.0) player.vy *= 0.6;
+    }
+  };
+  btn.addEventListener('touchstart', startPress, { passive: false });
+  btn.addEventListener('touchend', endPress, { passive: false });
+  btn.addEventListener('touchcancel', endPress, { passive: false });
+  btn.addEventListener('mousedown', startPress);
+  btn.addEventListener('mouseup', endPress);
+});
+
+function throwAppleWeapon() {
+  if (player.apples <= 0 && player.goldenAppleShots <= 0) {
+    spawnPopup("🍎 نفد التفاح! افتح الصناديق أو اهزم الحراس!", window.innerWidth * 0.5, window.innerHeight * 0.36, "#ff4444");
+    return;
+  }
+  player.actionState = 'THROW';
+  player.actionTimer = 0.24;
+  studioAudio.playSFX('JUMP');
+
+  if (player.goldenAppleShots > 0) {
+    player.goldenAppleShots--;
+    [-1.0, 2.2, 5.0].forEach(vyA => {
+      const gApp = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xff8800 }));
+      gApp.position.set(player.x + player.facing * 0.85, player.y + 1.25, 0);
+      stageRoot.add(gApp);
+      playerProjectiles.push({ mesh: gApp, isGolden: true, x: gApp.position.x, y: gApp.position.y, vx: player.facing * 16.5, vy: vyA, traveled: 0, maxDist: 22, dmg: 30 });
+    });
+  } else {
+    player.apples--;
+    const app = new THREE.Mesh(new THREE.SphereGeometry(0.23, 12, 12), new THREE.MeshStandardMaterial({ color: 0xff1744, emissive: 0x550000 }));
+    app.position.set(player.x + player.facing * 0.85, player.y + 1.25, 0);
+    stageRoot.add(app);
+    playerProjectiles.push({ mesh: app, isGolden: false, x: app.position.x, y: app.position.y, vx: player.facing * 16.0, vy: 2.2, traveled: 0, maxDist: 20, dmg: 15 });
+  }
+  refreshHUD();
+}
+
+function performSwordStrike() {
+  player.actionState = 'SWORD_SLASH';
+  player.actionTimer = 0.28;
+  mj.scimitarGroup.visible = true;
+  setTimeout(() => { mj.scimitarGroup.visible = false; }, 280);
+  studioAudio.playSFX('SWORD_SLASH');
+  const reachX = player.x + player.facing * 1.6;
+  for (const en of enemies) {
+    if (Math.abs(en.x - reachX) < 1.9 && Math.abs(en.y - player.y) < 1.9) {
+      en.hp -= 28;
+      spawnParticles(en.x, en.y + 1.0, 0x00ffff, 14);
+    }
+  }
+}
+
+// ============================================================================
+// 9. التحريك العضوي الكامل لجميع مفاصل مايكل جاكسون + الرقصات الـ 4 الاحتفالية
+// ============================================================================
+function updateNaturalMJAnimation(rig, dt) {
+  player.blinkTimer += dt;
+  const isBlinking = (player.blinkTimer % 3.5) > 3.36;
+  rig.eyelids.forEach(lid => { lid.rotation.x = isBlinking ? 0.85 : -0.25; });
+
+  if (player.celebrating) {
+    const t = player.celebrateTimer % 10.5;
+    const badge = document.getElementById('danceStepBadge');
+
+    rig.bodyPivot.rotation.set(0, 0, 0);
+    rig.pelvis.rotation.set(0, 0, 0);
+    rig.spine.rotation.set(0, 0, 0);
+    rig.head.rotation.set(0, 0, 0);
+    rig.leftLeg.hip.rotation.set(0, 0, 0); rig.leftLeg.knee.rotation.set(0, 0, 0); rig.leftLeg.ankle.rotation.set(0, 0, 0);
+    rig.rightLeg.hip.rotation.set(0, 0, 0); rig.rightLeg.knee.rotation.set(0, 0, 0); rig.rightLeg.ankle.rotation.set(0, 0, 0);
+    rig.leftArm.shoulder.rotation.set(0, 0, 0); rig.leftArm.elbow.rotation.set(0, 0, 0);
+    rig.rightArm.shoulder.rotation.set(0, 0, 0); rig.rightArm.elbow.rotation.set(0, 0, 0);
+
+    if (t < 2.6) {
+      badge.innerText = "🧟 1/4 يؤدّي الآن: رقصة Thriller الشهيرة!";
+      const beat = Math.sin(t * 10);
+      rig.root.rotation.y = 0;
+      rig.pelvis.position.y = 1.05 - Math.abs(beat) * 0.08;
+      rig.spine.rotation.z = beat * 0.18;
+      rig.head.rotation.z = -beat * 0.25;
+      rig.leftArm.shoulder.rotation.x = -1.45; rig.leftArm.shoulder.rotation.y = beat * 0.55; rig.leftArm.elbow.rotation.x = -0.65;
+      rig.rightArm.shoulder.rotation.x = -1.45; rig.rightArm.shoulder.rotation.y = beat * 0.55; rig.rightArm.elbow.rotation.x = -0.65;
+      rig.leftLeg.knee.rotation.x = Math.max(0, beat) * 0.65;
+      rig.rightLeg.knee.rotation.x = Math.max(0, -beat) * 0.65;
+    } else if (t < 5.2) {
+      badge.innerText = "🎩 2/4 يؤدّي الآن: دوران ووقفة أطراف الأصابع (Billie Jean)!";
+      if (t < 3.6) {
+        rig.bodyPivot.rotation.y = (t - 2.6) * Math.PI * 6;
+        rig.rightLeg.hip.rotation.x = -0.85 * Math.sin((t - 2.6) * 8);
+      } else {
+        rig.pelvis.position.y = 1.18;
+        rig.leftLeg.knee.rotation.x = 0.42; rig.leftLeg.ankle.rotation.x = 0.88;
+        rig.rightLeg.knee.rotation.x = 0.42; rig.rightLeg.ankle.rotation.x = 0.88;
+        rig.leftArm.shoulder.rotation.x = -1.25; rig.leftArm.elbow.rotation.x = -1.15;
+        rig.rightArm.shoulder.rotation.x = -2.65;
+      }
+    } else if (t < 7.6) {
+      badge.innerText = "🕴️ 3/4 يؤدّي الآن: انحناءة الجاذبية 45° (Smooth Criminal)!";
+      const leanProgress = Math.sin(((t - 5.2) / 2.4) * Math.PI);
+      rig.root.rotation.y = Math.PI * 0.22;
+      rig.bodyPivot.rotation.x = leanProgress * 0.76;
+      rig.leftArm.shoulder.rotation.x = -1.2; rig.leftArm.elbow.rotation.x = -1.1;
+      rig.rightArm.shoulder.rotation.z = -0.25;
+    } else {
+      badge.innerText = "🌙 4/4 الختام الأسطوري: سحبة المون ووك الشهيرة (Moonwalk)!";
+      const mwPhase = (t - 7.6) * 12.0;
+      const slideRatio = (t - 7.6) / 2.9;
+      rig.root.position.x = (stageExitSign.x + 2.4) - slideRatio * 4.8;
+      rig.root.rotation.y = Math.PI * 0.42;
+      rig.head.rotation.x = 0.25;
+      rig.leftLeg.hip.rotation.x = Math.sin(mwPhase) * 0.65;
+      rig.leftLeg.knee.rotation.x = Math.max(0, Math.cos(mwPhase)) * 0.95;
+      rig.leftLeg.ankle.rotation.x = Math.max(0, Math.sin(mwPhase)) * 0.65;
+      rig.rightLeg.hip.rotation.x = -Math.sin(mwPhase) * 0.65;
+      rig.rightLeg.knee.rotation.x = Math.max(0, -Math.cos(mwPhase)) * 0.95;
+      rig.rightLeg.ankle.rotation.x = Math.max(0, -Math.sin(mwPhase)) * 0.65;
+      rig.leftArm.shoulder.rotation.x = -1.2; rig.leftArm.elbow.rotation.x = -1.1;
+      rig.rightArm.shoulder.rotation.x = Math.sin(mwPhase) * 0.35;
+      if (Math.random() < 0.45) spawnParticles(rig.root.position.x, stageExitSign.y + 0.1, 0x00ffff, 2);
+    }
+    return;
+  }
+
+  player.squashY += (1.0 - player.squashY) * Math.min(1.0, dt * 12);
+  rig.bodyPivot.scale.set(1 / Math.sqrt(player.squashY), player.squashY, 1 / Math.sqrt(player.squashY));
+
+  const absVx = Math.abs(player.vx);
+  const speedRatio = Math.min(1.0, absVx / 7.2);
+
+  if (player.onGround && absVx > 0.12) player.strideCycle += absVx * dt * 1.85;
+  else if (player.onLadder && Math.abs(player.vy) > 0.1) player.strideCycle += player.vy * dt * 2.2;
+  else if (player.actionState === 'MOONWALK') player.strideCycle += dt * 11.0;
+  else player.strideCycle += dt * 2.4;
+
+  const s = Math.sin(player.strideCycle);
+  const c = Math.cos(player.strideCycle);
+
+  let targetPelvisY = player.isCrouching ? 0.68 : 1.12;
+  let targetPelvisRotX = 0;
+  let targetSpineRotX = 0, targetSpineRotY = 0, targetSpineRotZ = 0;
+  let lHipX = 0, lKneeX = 0, lAnkleX = 0;
+  let rHipX = 0, rKneeX = 0, rAnkleX = 0;
+  let lShX = 0, lElbX = -0.25;
+  let rShX = 0, rElbX = -0.25;
+
+  if (player.onLadder) {
+    lShX = -2.1 + s * 0.55; rShX = -2.1 - s * 0.55;
+    lHipX = -0.6 + s * 0.45; lKneeX = 0.85;
+    rHipX = -0.6 - s * 0.45; rKneeX = 0.85;
+  } else if (player.isParachuting) {
+    lShX = -2.75; rShX = -2.75;
+    lHipX = 0.25 * s; lKneeX = 0.30;
+    rHipX = -0.25 * s; rKneeX = 0.30;
+  } else if (!player.onGround) {
+    if (player.flipAngle > 0) {
+      player.flipAngle += dt * 11.5;
+      targetPelvisRotX = player.flipAngle;
+      lHipX = -1.25; lKneeX = 1.65; rHipX = -1.25; rKneeX = 1.65;
+      if (player.flipAngle >= Math.PI * 2) { player.flipAngle = 0; targetPelvisRotX = 0; }
+    } else {
+      const airTilt = Math.max(-1, Math.min(1, player.vy / 10));
+      targetSpineRotX = -airTilt * 0.15;
+      lHipX = -0.55; lKneeX = 0.85;
+      rHipX = 0.25;  rKneeX = 0.38;
+      rShX = -1.35;  lShX = -0.65;
+    }
+  } else if (player.actionState === 'MOONWALK') {
+    lHipX = s * 0.58; lKneeX = Math.max(0, c) * 0.85;
+    rHipX = -s * 0.58; rKneeX = Math.max(0, -c) * 0.85;
+    lShX = -1.15; lElbX = -1.05;
+  } else if (player.actionState === 'LEAN_45') {
+    targetSpineRotX = 0.72;
+  } else if (absVx > 0.12) {
+    const strideAmp = 0.38 + speedRatio * 0.48;
+    const kneeFlex = 0.45 + speedRatio * 0.65;
+    targetPelvisY = 1.11 + Math.abs(Math.cos(player.strideCycle)) * 0.05;
+    targetSpineRotX = 0.08 + speedRatio * 0.14;
+    targetSpineRotY = -s * 0.16;
+    targetSpineRotZ = c * 0.04 * speedRatio;
+
+    lHipX = -s * strideAmp; lKneeX = Math.max(0, -c) * kneeFlex + 0.1; lAnkleX = s * 0.3;
+    rHipX = s * strideAmp;  rKneeX = Math.max(0, c) * kneeFlex + 0.1;  rAnkleX = -s * 0.3;
+    lShX = s * strideAmp * 0.8; lElbX = -0.35 - Math.max(0, s) * 0.45;
+    rShX = -s * strideAmp * 0.8; rElbX = -0.35 - Math.max(0, -s) * 0.45;
+  } else {
+    const breath = Math.sin(player.strideCycle * 1.1);
+    targetPelvisY = 1.12 - Math.abs(breath) * 0.025;
+    targetSpineRotZ = breath * 0.025;
+    rKneeX = Math.max(0, breath) * 0.18;
+    rAnkleX = Math.max(0, breath) * 0.22;
+  }
+
+  if (player.actionState === 'SWORD_SLASH') {
+    const p = 1.0 - (player.actionTimer / 0.28);
+    rShX = -2.4 + p * 2.6;
+  } else if (player.actionState === 'THROW') {
+    lShX = -1.75;
+  }
+
+  const damp = Math.min(1.0, dt * 15.0);
+  rig.pelvis.position.y += (targetPelvisY - rig.pelvis.position.y) * damp;
+  rig.pelvis.rotation.x = player.flipAngle > 0 ? targetPelvisRotX : 0;
+  rig.spine.rotation.x += (targetSpineRotX - rig.spine.rotation.x) * damp;
+  rig.spine.rotation.y += (targetSpineRotY - rig.spine.rotation.y) * damp;
+  rig.spine.rotation.z += (targetSpineRotZ - rig.spine.rotation.z) * damp;
+  rig.leftLeg.hip.rotation.x += (lHipX - rig.leftLeg.hip.rotation.x) * damp;
+  rig.leftLeg.knee.rotation.x += (lKneeX - rig.leftLeg.knee.rotation.x) * damp;
+  rig.leftLeg.ankle.rotation.x += (lAnkleX - rig.leftLeg.ankle.rotation.x) * damp;
+  rig.rightLeg.hip.rotation.x += (rHipX - rig.rightLeg.hip.rotation.x) * damp;
+  rig.rightLeg.knee.rotation.x += (rKneeX - rig.rightLeg.knee.rotation.x) * damp;
+  rig.rightLeg.ankle.rotation.x += (rAnkleX - rig.rightLeg.ankle.rotation.x) * damp;
+  rig.leftArm.shoulder.rotation.x += (lShX - rig.leftArm.shoulder.rotation.x) * damp;
+  rig.leftArm.elbow.rotation.x += (lElbX - rig.leftArm.elbow.rotation.x) * damp;
+  rig.rightArm.shoulder.rotation.x += (rShX - rig.rightArm.shoulder.rotation.x) * damp;
+  rig.rightArm.elbow.rotation.x += (rElbX - rig.rightArm.elbow.rotation.x) * damp;
+}
+
+// ============================================================================
+// 10. الحلقة الفيزيائية الرئيسية + الكاميرا السينمائية السلسة (Zero-Snap Camera)
+// ============================================================================
+let lastTime = performance.now();
+function gameLoop(nowMs) {
+  const dt = Math.min(0.033, Math.max(0.001, (nowMs - lastTime) / 1000));
+  lastTime = nowMs;
+  if (!isGamePaused) updateEngine(dt, nowMs * 0.001);
+  renderer.render(scene, camera);
+  requestAnimationFrame(gameLoop);
+}
+
+function loseOneLifeAndRespawn(reasonMsg) {
+  player.lives--;
+  studioAudio.playSFX('HURT');
+  document.getElementById('waterWarningBanner').style.display = 'none';
+  if (player.lives <= 0) {
+    player.lives = 4;
+    player.hearts = 5;
+    player.subHp = 100;
+    spawnPopup(`💔 انتهت المحاولات (${reasonMsg}) — إعادة المرحلة!`, window.innerWidth * 0.5, window.innerHeight * 0.35, "#ff1744");
+    buildStage(curStage);
+  } else {
+    player.hearts = 5;
+    player.subHp = 100;
+    spawnPopup(`💔 فقدت محاولة (${reasonMsg})! المحاولات المتبقية: ${player.lives}`, window.innerWidth * 0.5, window.innerHeight * 0.35, "#ffd700");
+    const stg = STORY_CHAPTERS[curStage];
+    const isCarpetFlight = (stg.theme === 'CARPET_VOLCANO' || stg.theme === 'CARPET_NIGHT');
+    player.x = 0;
+    player.y = isCarpetFlight ? 3.4 : ((stg.theme === 'LAMP_HANDS' || stg.theme === 'LAMP_TONGUES') ? 1.2 : 0);
+    player.vx = 0; player.vy = 0;
+    player.invuln = 2.0;
+    lavaChaserX = -13;
+    cameraFocusX = 2.5;
+    smoothLookAheadX = 1.2;
+    smoothLookTargetX = 3.5;
+    refreshHUD();
+  }
+}
+
+function updateEngine(dt, elapsedSec) {
+  const stg = STORY_CHAPTERS[curStage];
+  const isCarpetFlight = (stg.theme === 'CARPET_VOLCANO' || stg.theme === 'CARPET_NIGHT');
+
+  if (player.celebrating) {
+    player.celebrateTimer += dt;
+    mj.root.position.set(stageExitSign.x, stageExitSign.y, 0);
+    updateNaturalMJAnimation(mj, dt);
+    if (Math.random() < 0.25) spawnParticles(stageExitSign.x + (Math.random() - 0.5) * 6, stageExitSign.y + 3.0, 0xffd700, 3);
+    camera.position.lerp(new THREE.Vector3(stageExitSign.x, stageExitSign.y + 2.6, 10.2), 0.05);
+    smoothLookTargetX += (stageExitSign.x - smoothLookTargetX) * 0.08;
+    smoothLookTargetY += ((stageExitSign.y + 1.2) - smoothLookTargetY) * 0.08;
+    camera.lookAt(smoothLookTargetX, smoothLookTargetY, 0);
+    return;
+  }
+
+  if (player.actionTimer > 0) {
+    player.actionTimer -= dt;
+    if (player.actionTimer <= 0) player.actionState = 'NONE';
+  }
+  if (player.invuln > 0) {
+    player.invuln -= dt;
+    mj.root.visible = (Math.floor(player.invuln * 16) % 2 === 0);
+  } else {
+    mj.root.visible = true;
+  }
+
+  for (const fs of flippingStones) {
+    const active = Math.sin(elapsedSec * 2.2 + fs.phase) > -0.3;
+    fs.sb.active = active;
+    fs.mesh.rotation.x = active ? 0 : Math.PI / 2;
+  }
+
+  for (const rb of rollingBarrels) {
+    rb.x += rb.vx * dt;
+    if (rb.x < rb.minX) { rb.x = rb.minX; rb.vx = Math.abs(rb.vx); }
+    if (rb.x > rb.maxX) { rb.x = rb.maxX; rb.vx = -Math.abs(rb.vx); }
+    rb.mesh.position.x = rb.x;
+    rb.mesh.rotation.z -= rb.vx * dt * 1.5;
+    if (Math.hypot(player.x - rb.x, player.y - 0.45) < 0.85) takeHeartDamage(rb.x);
+  }
+
+  if (lavaWallMesh) {
+    lavaChaserX += 6.6 * dt;
+    if (player.x - lavaChaserX > 15.0) lavaChaserX = player.x - 15.0;
+    lavaWallMesh.position.x = lavaChaserX;
+    lavaWallMesh.rotation.y += dt * 4.0;
+
+    if (player.x <= lavaChaserX + 2.2) {
+      loseOneLifeAndRespawn("ابتلعتك موجة الحمم البركانية المشتعلة!");
+      return;
+    }
+  }
+
+  let nearLadder = null;
+  if (!isCarpetFlight) {
+    for (const ld of climbLadders) {
+      if (Math.abs(player.x - ld.x) < 0.75 && player.y >= ld.yMin - 0.3 && player.y <= ld.yMax) {
+        nearLadder = ld; break;
+      }
+    }
+  }
+  if (nearLadder && (keys.ArrowUp || keys.KeyW || keys.ArrowDown || keys.KeyS)) {
+    player.onLadder = true; player.onGround = false; player.x = nearLadder.x;
+  }
+  if (!nearLadder) player.onLadder = false;
+
+  if (!isCarpetFlight && !player.onGround && !player.onLadder) {
+    for (const zl of ziplines) {
+      if (player.x >= zl.x1 && player.x <= zl.x2) {
+        const t = (player.x - zl.x1) / (zl.x2 - zl.x1);
+        const ropeY = zl.y1 + t * (zl.y2 - zl.y1);
+        if (Math.abs((player.y + 1.9) - ropeY) < 0.7 && player.vy <= 0) {
+          player.onZipline = zl; break;
+        }
+      }
+    }
+  }
+
+  const maxSpd = isCarpetFlight ? 9.8 : 7.2;
+
+  if (isCarpetFlight) {
+    const baseForward = (stg.theme === 'CARPET_VOLCANO') ? 6.8 : 0;
+    if (keys.ArrowRight || keys.KeyD) { player.vx = Math.min(maxSpd, player.vx + 22 * dt); player.facing = 1; }
+    else if (keys.ArrowLeft || keys.KeyA) { player.vx = Math.max(baseForward * 0.6, player.vx - 22 * dt); }
+    else player.vx += (baseForward - player.vx) * 0.1;
+
+    if (keys.ArrowUp || keys.KeyW || keys.Space) player.vy = Math.min(6.5, player.vy + 20 * dt);
+    else if (keys.ArrowDown || keys.KeyS) player.vy = Math.max(-6.5, player.vy - 20 * dt);
+    else player.vy *= 0.88;
+  } else if (player.onLadder) {
+    player.vx = 0;
+    if (keys.ArrowUp || keys.KeyW) player.vy = 4.6;
+    else if (keys.ArrowDown || keys.KeyS) {
+      player.vy = -4.6;
+      if (player.y <= nearLadder.yMin + 0.05) player.onLadder = false;
+    } else if (keys.ArrowRight || keys.KeyD || keys.ArrowLeft || keys.KeyA) player.onLadder = false;
+    else player.vy = 0;
+  } else if (player.onZipline) {
+    player.vx = 9.8; player.facing = 1;
+    const zl = player.onZipline;
+    const t = (player.x - zl.x1) / (zl.x2 - zl.x1);
+    if (t >= 1.0) { player.onZipline = null; player.vy = 4.0; }
+    else { player.y = zl.y1 + t * (zl.y2 - zl.y1) - 1.85; player.vy = 0; }
+  } else {
+    const accel = player.onGround ? 24.0 : 15.0;
+    const fric = player.onGround ? 18.0 : 4.5;
+    if (player.actionState !== 'MOONWALK') {
+      if (keys.ArrowRight || keys.KeyD) { player.vx = Math.min(maxSpd, player.vx + accel * dt); player.facing = 1; }
+      else if (keys.ArrowLeft || keys.KeyA) { player.vx = Math.max(-maxSpd, player.vx - accel * dt); player.facing = -1; }
+      else {
+        if (Math.abs(player.vx) > 0.18) player.vx -= Math.sign(player.vx) * fric * dt;
+        else player.vx = 0;
+      }
+    }
+    for (const sw of sandWaterfalls) {
+      if (player.x >= sw.xMin && player.x <= sw.xMax) player.vx *= 0.62;
+    }
+    if (player.isJumping && keys.Space && player.jumpHold > 0) {
+      player.vy += 18.0 * dt; player.jumpHold -= dt;
+    } else player.isJumping = false;
+
+    if (!player.onGround && player.vy < -0.6 && (keys.Space || keys.ArrowUp || keys.KeyW)) {
+      player.isParachuting = true; mj.parachuteCloth.visible = true;
+      player.vy = Math.max(-2.2, player.vy - 5.0 * dt);
+    } else {
+      player.isParachuting = false; mj.parachuteCloth.visible = false;
+      player.vy -= 26.0 * dt;
+    }
+  }
+
+  const prevY = player.y;
+  const wasOnGround = player.onGround;
+  let nextX = Math.max(-6, player.x + player.vx * dt);
+
+  for (const b of solidBlocks) {
+    if (!b.active || b.oneWayTop) continue;
+    if (player.y + 1.8 > b.yMin && player.y < b.yMax) {
+      if (nextX + 0.38 > b.xMin && nextX - 0.38 < b.xMax) {
+        if (isCarpetFlight) {
+          takeHeartDamage(b.xMin);
+          nextX = b.xMin - 0.5;
+        } else {
+          nextX = player.vx > 0 ? b.xMin - 0.39 : b.xMax + 0.39;
+          player.vx = 0;
+        }
+      }
+    }
+  }
+  player.x = nextX;
+
+  let nextY = player.y + player.vy * dt;
+  player.onGround = false;
+
+  for (const b of solidBlocks) {
+    if (!b.active) continue;
+    if (player.x + 0.35 > b.xMin && player.x - 0.35 < b.xMax) {
+      if (player.vy <= 0 && prevY >= b.yMax - 0.98 && nextY <= b.yMax) {
+        nextY = b.yMax; player.vy = 0; player.onGround = true;
+      }
+    }
+  }
+
+  for (const mp of movingPlatforms) {
+    mp.phase += dt * 2.0;
+    const oldX = mp.x;
+    mp.x = mp.baseX + Math.sin(mp.phase) * mp.rangeX;
+    const cy = mp.baseY + Math.cos(mp.phase) * mp.rangeY;
+    mp.yTop = cy + 0.6;
+    mp.mesh.position.set(mp.x, cy, 0);
+    if (Math.abs(player.x - mp.x) <= mp.w * 0.5 && player.vy <= 0 && prevY >= mp.yTop - 0.45 && nextY <= mp.yTop + 0.2) {
+      nextY = mp.yTop; player.vy = 0; player.onGround = true; player.x += (mp.x - oldX);
+    }
+  }
+
+  if (isCarpetFlight) {
+    if (nextY < 0.7) {
+      loseOneLifeAndRespawn("سقط البساط السحري في الحمم المشتعلة!");
+      return;
+    }
+    nextY = Math.min(8.2, nextY);
+  } else if (!player.onZipline && !player.onLadder) {
+    for (const fd of floorDeckList) {
+      if (player.x >= fd.xStart && player.x <= fd.xEnd) {
+        if (player.vy <= 0 && prevY >= fd.yTop - 0.35 && nextY <= fd.yTop + 0.12) {
+          nextY = fd.yTop; player.vy = 0; player.onGround = true;
+        }
+      }
+    }
+  }
+  player.y = nextY;
+
+  if (player.onGround && !wasOnGround) { player.squashY = 0.86; player.flipAngle = 0; }
+
+  if (stg.theme === 'WATER_LAGOON') {
+    if (player.y < -0.25) {
+      player.y = Math.max(-0.65, player.y);
+      player.vy = Math.max(-1.0, player.vy);
+      player.vx *= 0.78;
+      document.getElementById('waterWarningBanner').style.display = 'block';
+
+      player.subHp -= 28.0 * dt;
+      if (player.subHp <= 0) {
+        player.hearts--;
+        studioAudio.playSFX('HURT');
+        spawnParticles(player.x, player.y + 0.8, 0x00e5ff, 10);
+        if (player.hearts <= 0) {
+          loseOneLifeAndRespawn("غرقت في البحيرة الجوفية بعد نفاد صحتك!");
+          return;
+        } else {
+          player.subHp = 100;
+        }
+      }
+      refreshHUD();
+    } else {
+      document.getElementById('waterWarningBanner').style.display = 'none';
+    }
+  } else {
+    if (player.y < -3.8) {
+      loseOneLifeAndRespawn("سقطت في الهاوية خارج المسار!");
+      return;
+    }
+  }
+
+  for (const tc of treasureChests) {
+    if (!tc.opened && Math.hypot(player.x - tc.x, (player.y + 0.8) - tc.y) < 1.45) {
+      tc.opened = true; tc.mesh.scale.set(1.1, 0.4, 1.1);
+      player.apples += 8; player.goldenAppleShots += 4; player.gems += 3; player.score += 500;
+      studioAudio.playSFX('POWERUP');
+      spawnParticles(tc.x, tc.y + 0.5, 0xffd700, 18);
+      spawnPopup("🎁 صندوق كنز! (+8 تفاح + 4 تفاح ذهبي 🍏)", window.innerWidth * 0.5, window.innerHeight * 0.32, "#ffd700");
+      refreshHUD();
+    }
+  }
+
+  for (const sb of springBouncers) {
+    if (Math.abs(player.x - sb.x) < 1.5 && player.vy <= 0 && prevY >= sb.yTop - 0.5 && player.y <= sb.yTop + 0.35) {
+      player.vy = 13.8; player.onGround = false; player.flipAngle = 0.01;
+      studioAudio.playSFX('BOUNCE');
+      spawnParticles(sb.x, sb.yTop, 0xffd700, 14);
+    }
+  }
+
+  mj.root.position.set(player.x, player.y, 0);
+  const angledYaw = player.onLadder ? Math.PI : ((player.facing === 1) ? Math.PI * 0.30 : -Math.PI * 0.30);
+  mj.root.rotation.y += (angledYaw - mj.root.rotation.y) * Math.min(1, dt * 9.0);
+  updateNaturalMJAnimation(mj, dt);
+
+  if (companions.root.visible) {
+    companions.animPhase += dt * 6.5;
+    companions.genieZapCooldown = Math.max(0, companions.genieZapCooldown - dt);
+
+    let closestEnemy = null, minD = 7.0;
+    for (const en of enemies) {
+      const d = Math.hypot(en.x - player.x, en.y - player.y);
+      if (d < minD && en.stunTimer <= 0) { minD = d; closestEnemy = en; }
+    }
+
+    if (companions.genieGroup.visible) {
+      companions.genieX += ((player.x - player.facing * 1.4) - companions.genieX) * dt * 6;
+      companions.genieY += ((player.y + 1.8 + Math.sin(companions.animPhase) * 0.25) - companions.genieY) * dt * 6;
+      companions.genieGroup.position.set(companions.genieX, companions.genieY, -0.6);
+      companions.genieGroup.rotation.y += (((player.facing === 1) ? 0 : Math.PI) - companions.genieGroup.rotation.y) * dt * 8;
+
+      companions.tailSegments.forEach(seg => {
+        seg.mesh.position.x = seg.baseX + Math.sin(companions.animPhase * 1.8 + seg.idx * 0.45) * 0.08;
+      });
+      companions.genieArmL.sh.rotation.z = Math.sin(companions.animPhase) * 0.28;
+      companions.genieArmL.elb.rotation.z = -0.6 + Math.cos(companions.animPhase) * 0.25;
+      companions.genieArmR.sh.rotation.z = -Math.sin(companions.animPhase) * 0.28;
+      companions.genieArmR.elb.rotation.z = -0.6 - Math.cos(companions.animPhase) * 0.25;
+      companions.gHead.rotation.y = Math.sin(companions.animPhase * 0.7) * 0.2;
+
+      if (closestEnemy && companions.genieZapCooldown <= 0) {
+        companions.genieZapCooldown = 3.2;
+        closestEnemy.hp -= 14; closestEnemy.stunTimer = 2.0;
+        spawnParticles(closestEnemy.x, closestEnemy.y + 1.2, 0x00e5ff, 14);
+      }
+    }
+
+    if (companions.abuGroup.visible) {
+      const goalX = closestEnemy && Math.abs(closestEnemy.y - player.y) < 1.2 ? closestEnemy.x : (player.x - player.facing * 1.2);
+      const prevAx = companions.abuX;
+      companions.abuX += (goalX - companions.abuX) * dt * 8;
+      companions.abuY += (player.y - companions.abuY) * dt * 10;
+      companions.abuGroup.position.set(companions.abuX, companions.abuY, -0.4);
+      const targetAbuYaw = (goalX >= prevAx) ? 0 : Math.PI;
+      companions.abuGroup.rotation.y += (targetAbuYaw - companions.abuGroup.rotation.y) * dt * 9;
+
+      const isMoving = Math.abs(companions.abuX - prevAx) > 0.008;
+      const sw = isMoving ? Math.sin(companions.animPhase * 2.2) * 0.65 : 0;
+      companions.abuLegL.joint1.rotation.z = sw;
+      companions.abuLegL.joint2.rotation.z = -Math.abs(sw) * 0.5;
+      companions.abuLegR.joint1.rotation.z = -sw;
+      companions.abuLegR.joint2.rotation.z = -Math.abs(sw) * 0.5;
+      companions.abuArmL.joint1.rotation.z = -sw * 0.8;
+      companions.abuArmR.joint1.rotation.z = isMoving ? sw * 0.8 : Math.sin(companions.animPhase) * 0.25;
+      companions.abuHead.rotation.z = Math.sin(companions.animPhase * 0.8) * 0.12;
+    }
+  }
+
+  for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+    const pr = playerProjectiles[i];
+    pr.vy -= 13.0 * dt; pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.traveled += Math.abs(pr.vx * dt);
+    pr.mesh.position.set(pr.x, pr.y, 0);
+    if (pr.traveled >= pr.maxDist || pr.y < -2) {
+      stageRoot.remove(pr.mesh);
+      if (pr.mesh.geometry) pr.mesh.geometry.dispose();
+      playerProjectiles.splice(i, 1);
+      continue;
+    }
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const e = enemies[j];
+      if (Math.abs(e.x - pr.x) < 1.25 && Math.abs((e.y + 0.8) - pr.y) < 1.65) {
+        e.hp -= pr.dmg; e.stunTimer = 2.0;
+        spawnParticles(pr.x, pr.y, 0xffd700, 14);
+        stageRoot.remove(pr.mesh);
+        if (pr.mesh.geometry) pr.mesh.geometry.dispose();
+        playerProjectiles.splice(i, 1);
+        break;
+      }
+    }
+  }
+
+  let bossAlive = false;
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    if (e.hp <= 0) {
+      stageRoot.remove(e.mesh); enemies.splice(i, 1);
+      player.score += e.isBoss ? 3000 : 350;
+      spawnParticles(e.x, e.y + 1.0, 0xffd700, 18);
+      refreshHUD(); continue;
+    }
+    const dist = player.x - e.x;
+    if (Math.abs(dist) > 42) continue;
+
+    if (e.isBoss) {
+      bossAlive = true;
+      document.getElementById('bossPctTxt').innerText = `${Math.max(0, Math.round((e.hp / e.maxHp) * 100))}%`;
+      document.getElementById('bossFill').style.width = `${Math.max(0, (e.hp / e.maxHp) * 100)}%`;
+    }
+
+    e.walkCycle += dt * 7.5;
+
+    if (e.stunTimer > 0) {
+      e.stunTimer -= dt;
+      if (e.mesh.userData.dizzyRing) e.mesh.userData.dizzyRing.visible = true;
+      e.mesh.rotation.y += dt * 14;
+    } else if (e.mesh.userData.isSnake) {
+      e.lungeCooldown = Math.max(0, e.lungeCooldown - dt);
+      let snakeSpeed = e.isBoss ? 2.8 : 2.1;
+      if (Math.abs(dist) < 5.0 && e.lungeCooldown <= 0) {
+        snakeSpeed = 8.2;
+        e.mesh.userData.neckPivot.rotation.z = -0.45;
+        if (Math.abs(dist) < 1.8) e.lungeCooldown = 1.6;
+      } else {
+        e.mesh.userData.neckPivot.rotation.z = Math.sin(e.walkCycle) * 0.16;
+      }
+      e.mesh.userData.forkedTongue.scale.x = 0.6 + Math.abs(Math.sin(e.walkCycle * 3)) * 0.7;
+      let nx = e.x + Math.sign(dist) * snakeSpeed * dt;
+      nx = Math.max(e.minX, Math.min(e.maxX, nx));
+      e.x = nx;
+      e.mesh.position.set(e.x, e.y, 0);
+      e.mesh.rotation.y += (((dist >= 0) ? 0 : Math.PI) - e.mesh.rotation.y) * dt * 8;
+    } else if (e.mesh.userData.isBat) {
+      e.x -= 4.2 * dt;
+      e.y = e.baseY + Math.sin(e.walkCycle) * 1.4;
+      e.mesh.position.set(e.x, e.y, 0);
+      e.mesh.userData.wingL.rotation.x = Math.sin(e.walkCycle * 2.5) * 0.7;
+      e.mesh.userData.wingR.rotation.x = -Math.sin(e.walkCycle * 2.5) * 0.7;
+    } else {
+      if (e.mesh.userData.dizzyRing) e.mesh.userData.dizzyRing.visible = false;
+      const moveSpd = e.mesh.userData.isFemale ? 3.2 : 2.2;
+      let nx = e.x + e.patrolDir * moveSpd * dt;
+      if (nx <= e.minX) { nx = e.minX; e.patrolDir = 1; }
+      if (nx >= e.maxX) { nx = e.maxX; e.patrolDir = -1; }
+      e.x = nx; e.mesh.position.set(e.x, e.y, 0);
+      e.mesh.rotation.y += (((e.patrolDir >= 0) ? 0 : Math.PI) - e.mesh.rotation.y) * dt * 8;
+      if (e.mesh.userData.leftLeg) {
+        const ws = Math.sin(e.walkCycle);
+        const wc = Math.cos(e.walkCycle);
+        e.mesh.userData.leftLeg.hipJoint.rotation.z = ws * 0.48;
+        e.mesh.userData.leftLeg.kneeJoint.rotation.z = -Math.max(0, wc) * 0.55;
+        e.mesh.userData.rightLeg.hipJoint.rotation.z = -ws * 0.48;
+        e.mesh.userData.rightLeg.kneeJoint.rotation.z = -Math.max(0, -wc) * 0.55;
+        e.mesh.userData.armR.rotation.z = ws * 0.4;
+        e.mesh.userData.elbowR.rotation.z = 0.3 + Math.abs(ws) * 0.4;
+      }
+    }
+
+    const topY = e.y + (e.isBoss ? 2.6 : (e.mesh.userData.isSnake ? 1.35 : 1.75));
+    if (Math.abs(player.x - e.x) < (e.isBoss ? 1.25 : 0.88)) {
+      if (!isCarpetFlight && player.vy < -0.2 && prevY >= topY - 0.55) {
+        player.vy = 11.5; player.flipAngle = 0.01;
+        e.hp -= 12; e.stunTimer = 2.2;
+        studioAudio.playSFX('BOUNCE');
+      } else if (e.stunTimer <= 0 && player.y < topY - 0.2 && player.y + 1.8 > e.y) {
+        takeHeartDamage(e.x);
+      }
+    }
+  }
+  document.getElementById('bossCorner').style.display = bossAlive ? 'block' : 'none';
+
+  for (let i = collectiblesList.length - 1; i >= 0; i--) {
+    const c = collectiblesList[i];
+    c.mesh.rotation.y += dt * 3.5;
+    if (Math.hypot(player.x - c.x, (player.y + 0.95) - c.y) < 1.25) {
+      stageRoot.remove(c.mesh); collectiblesList.splice(i, 1);
+      if (c.type === 'APPLE') { player.apples += 1; player.score += 50; }
+      else if (c.type === 'GOLDEN_APPLE_PACK') { player.apples += 8; player.goldenAppleShots += 4; studioAudio.playSFX('POWERUP'); }
+      else { player.gems += 2; player.score += 250; studioAudio.playSFX('POWERUP'); }
+      studioAudio.playSFX('JUMP'); refreshHUD();
+    }
+  }
+
+  if (stageExitSign && !stageExitSign.reached && player.x >= stageExitSign.x - 1.5) {
+    stageExitSign.reached = true;
+    player.celebrating = true;
+    player.celebrateTimer = 0;
+    studioAudio.playSFX('POWERUP');
+    studioAudio.playSFX('HEEHEE');
+    document.getElementById('celebrationStageTitle').innerText = `🕺 اكتملت "${stg.title}"!`;
+    document.getElementById('mjCelebrationBanner').style.display = 'block';
+  }
+
+  for (let i = 0; i < SPARK_POOL_SIZE; i++) {
+    const sp = sparkPool[i];
+    if (sp.active) {
+      sp.mesh.position.x += sp.vx * dt;
+      sp.mesh.position.y += sp.vy * dt;
+      sp.vy -= 16 * dt;
+      sp.life -= dt;
+      if (sp.life <= 0) {
+        sp.active = false;
+        sp.mesh.visible = false;
+      }
+    }
+  }
+
+  // =========================================================================
+  // الكاميرا السينمائية الناعمة والديناميكية (Zero-Snap Cinematic Director Camera)
+  // تنتقل بسلاسة تامة عند الالتفات لليمين أو اليسار دون أي قفزة مفاجئة!
+  // =========================================================================
+  const deadzone = 1.4;
+  if (player.x > cameraFocusX + deadzone) cameraFocusX = player.x - deadzone;
+  else if (player.x < cameraFocusX - deadzone) cameraFocusX = player.x + deadzone;
+
+  // انتقال تدريجي ناعم جداً لاتجاه النظر الأمامي (Look-Ahead) عند التفات اللاعب
+  const desiredLookAhead = player.facing * 1.45 + player.vx * 0.22;
+  smoothLookAheadX += (desiredLookAhead - smoothLookAheadX) * Math.min(1.0, dt * 2.6);
+
+  const desiredCamX = cameraFocusX + smoothLookAheadX * 0.65;
+  const desiredCamY = player.y * 0.56 + 4.1;
+  const desiredCamZ = 15.6 + Math.abs(player.vx) * 0.18 + (player.onGround ? 0 : 0.8);
+
+  camera.position.x += (desiredCamX - camera.position.x) * Math.min(1.0, dt * 4.2);
+  camera.position.y += (desiredCamY - camera.position.y) * Math.min(1.0, dt * 5.0);
+  smoothCamZ += (desiredCamZ - smoothCamZ) * Math.min(1.0, dt * 3.5);
+  camera.position.z = smoothCamZ;
+
+  // تنعيم نقطة الهدف التي تنظر إليها الكاميرا (LookAt Target Smoothing)
+  const targetLookX = cameraFocusX + smoothLookAheadX;
+  const targetLookY = camera.position.y - 1.45;
+  smoothLookTargetX += (targetLookX - smoothLookTargetX) * Math.min(1.0, dt * 4.8);
+  smoothLookTargetY += (targetLookY - smoothLookTargetY) * Math.min(1.0, dt * 5.5);
+
+  camera.lookAt(smoothLookTargetX, smoothLookTargetY, 0);
+
+  // ميلان سينمائي خفيف جداً للكاميرا مع تسارع الحركة (Subtle Dutch Roll)
+  const targetRoll = -player.vx * 0.0025;
+  smoothCamRoll += (targetRoll - smoothCamRoll) * Math.min(1.0, dt * 4.0);
+  camera.rotation.z = smoothCamRoll;
+
+  heroLight.position.set(player.x, player.y + 6, 4);
+}
+
+function takeHeartDamage(srcX) {
+  if (player.invuln > 0 || player.celebrating) return;
+  player.hearts--;
+  player.subHp = 100;
+  player.invuln = 1.4;
+  player.vx = Math.sign(player.x - srcX) * 5.5;
+  player.vy = 4.2;
+  studioAudio.playSFX('HURT');
+  spawnParticles(player.x, player.y + 1.0, 0xff1744, 14);
+  if (player.hearts <= 0) {
+    loseOneLifeAndRespawn("نفدت قلوب الطاقة!");
+  } else {
+    refreshHUD();
+  }
+}
+
+function spawnPopup(txt, x, y, color) {
+  const d = document.createElement('div');
+  d.className = 'pop-txt';
+  d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.color = color;
+  d.innerText = txt;
+  document.getElementById('popupLayer').appendChild(d);
+  setTimeout(() => d.remove(), 950);
+}
+
+function refreshHUD() {
+  document.getElementById('uiLives').innerText = String(player.lives).padStart(2, '0');
+  document.getElementById('uiHeartsRow').innerText = '❤️'.repeat(Math.max(0, player.hearts)) + '🖤'.repeat(Math.max(0, 5 - player.hearts));
+  document.getElementById('uiSubHp').style.width = `${Math.max(0, player.subHp)}%`;
+  document.getElementById('uiApples').innerText = String(player.apples).padStart(2, '0');
+  document.getElementById('uiGems').innerText = String(player.gems).padStart(2, '0');
+  document.getElementById('uiScore').innerText = String(player.score).padStart(6, '0');
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+setCompanionMode('BOTH');
+equipMJOutfit(0);
+buildStage(0);
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
